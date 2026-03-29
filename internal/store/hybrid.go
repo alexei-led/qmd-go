@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -432,17 +433,17 @@ func storeLLMCache(d *sql.DB, hash, result string) {
 }
 
 func parseExpansionResponse(resp string) (lex, vec, hyde []string) {
-	for _, line := range strings.Split(resp, "\n") {
+	for line := range strings.SplitSeq(resp, "\n") {
 		line = strings.TrimSpace(line)
 		switch {
 		case strings.HasPrefix(line, "LEX:"):
-			for _, t := range strings.Split(strings.TrimPrefix(line, "LEX:"), ",") {
+			for t := range strings.SplitSeq(strings.TrimPrefix(line, "LEX:"), ",") {
 				if t = strings.TrimSpace(t); t != "" {
 					lex = append(lex, t)
 				}
 			}
 		case strings.HasPrefix(line, "VEC:"):
-			for _, t := range strings.Split(strings.TrimPrefix(line, "VEC:"), ";") {
+			for t := range strings.SplitSeq(strings.TrimPrefix(line, "VEC:"), ";") {
 				if t = strings.TrimSpace(t); t != "" {
 					vec = append(vec, t)
 				}
@@ -526,12 +527,9 @@ func rerankCacheKey(query, chunkText string) string {
 func docSources(docID int64, lists []rankedList, labels []string) []string {
 	var sources []string
 	for i, list := range lists {
-		for _, id := range list.docIDs {
-			if id == docID {
-				if i < len(labels) {
-					sources = append(sources, labels[i])
-				}
-				break
+		if slices.Contains(list.docIDs, docID) {
+			if i < len(labels) {
+				sources = append(sources, labels[i])
 			}
 		}
 	}

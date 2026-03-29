@@ -212,16 +212,3 @@ func TestDefaultMemorySearchConfig(t *testing.T) {
 	assert.Equal(t, DefaultMaxResults, cfg.MaxResults)
 	assert.Equal(t, DefaultCandidateMultiple, cfg.CandidateMultiplier)
 }
-
-func TestSnippetTruncation(t *testing.T) {
-	long := make([]byte, MaxSnippetChars+100)
-	for i := range long {
-		long[i] = 'a'
-	}
-
-	snippet := string(long)
-	if len(snippet) > MaxSnippetChars {
-		snippet = snippet[:MaxSnippetChars]
-	}
-	assert.Len(t, snippet, MaxSnippetChars)
-}

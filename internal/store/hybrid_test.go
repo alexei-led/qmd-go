@@ -49,10 +49,8 @@ func TestFuseRRF_TopRankBonus(t *testing.T) {
 	require.Len(t, results, 4)
 	assert.Equal(t, int64(10), results[0].docID)
 	gap01 := results[0].score - results[1].score
-	gap12 := results[1].score - results[2].score
 	gap23 := results[2].score - results[3].score
 	assert.Greater(t, gap01, gap23)
-	_ = gap12
 }
 
 func TestBlendScores(t *testing.T) {

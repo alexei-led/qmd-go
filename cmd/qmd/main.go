@@ -189,7 +189,7 @@ func vsearchAction(c *cli.Context) error {
 	}
 	defer func() { _ = database.Close() }()
 
-	embedder, err := provider.NewEmbedder(cfg.Providers.Embed)
+	embedder, err := provider.NewEmbedder(embedCfg(cfg))
 	if err != nil {
 		return fmt.Errorf("create embedder: %w", err)
 	}
@@ -287,21 +287,21 @@ func queryAction(c *cli.Context) error {
 }
 
 func initQueryProviders(c *cli.Context, cfg *config.Config) (provider.Embedder, provider.Reranker, provider.Generator) {
-	embedder, err := provider.NewEmbedder(cfg.Providers.Embed)
+	embedder, err := provider.NewEmbedder(embedCfg(cfg))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: embedder unavailable: %v\n", err)
 	}
 
 	var reranker provider.Reranker
 	if !c.Bool("no-rerank") {
-		reranker, err = provider.NewReranker(cfg.Providers.Rerank)
+		reranker, err = provider.NewReranker(rerankCfg(cfg))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warning: reranker unavailable: %v\n", err)
 		}
 	}
 
 	var generator provider.Generator
-	generator, err = provider.NewGenerator(cfg.Providers.Generate)
+	generator, err = provider.NewGenerator(genCfg(cfg))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: generator unavailable: %v\n", err)
 	}
@@ -586,7 +586,7 @@ func embedAction(c *cli.Context) error {
 	}
 	defer func() { _ = database.Close() }()
 
-	embedder, err := provider.NewEmbedder(cfg.Providers.Embed)
+	embedder, err := provider.NewEmbedder(embedCfg(cfg))
 	if err != nil {
 		return fmt.Errorf("create embedder: %w", err)
 	}
@@ -780,6 +780,30 @@ func openIndex(c *cli.Context) (*config.Config, config.Paths, *sql.DB, error) {
 	}
 
 	return cfg, paths, database, nil
+}
+
+// embedCfg safely extracts the embed provider config, returning nil when unconfigured.
+func embedCfg(cfg *config.Config) *config.ProviderConfig {
+	if cfg.Providers == nil {
+		return nil
+	}
+	return cfg.Providers.Embed
+}
+
+// rerankCfg safely extracts the rerank provider config, returning nil when unconfigured.
+func rerankCfg(cfg *config.Config) *config.ProviderConfig {
+	if cfg.Providers == nil {
+		return nil
+	}
+	return cfg.Providers.Rerank
+}
+
+// genCfg safely extracts the generate provider config, returning nil when unconfigured.
+func genCfg(cfg *config.Config) *config.ProviderConfig {
+	if cfg.Providers == nil {
+		return nil
+	}
+	return cfg.Providers.Generate
 }
 
 func collectionCmd() *cli.Command {

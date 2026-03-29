@@ -121,14 +121,18 @@ func TestInsertDocument(t *testing.T) {
 
 func TestInsertDocument_UpsertUpdatesTitle(t *testing.T) {
 	d := openTestDB(t)
-	hash, _ := store.InsertContent(d, "content")
-	_, _ = store.InsertDocument(d, "coll", "file.md", "Old Title", hash)
+	hash, err := store.InsertContent(d, "content")
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "file.md", "Old Title", hash)
+	require.NoError(t, err)
 
-	newHash, _ := store.InsertContent(d, "new content")
-	_, _ = store.InsertDocument(d, "coll", "file.md", "New Title", newHash)
+	newHash, err := store.InsertContent(d, "new content")
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "file.md", "New Title", newHash)
+	require.NoError(t, err)
 
 	var title, docHash string
-	err := d.QueryRow(`SELECT title, hash FROM documents WHERE collection = ? AND path = ?`, "coll", "file.md").Scan(&title, &docHash)
+	err = d.QueryRow(`SELECT title, hash FROM documents WHERE collection = ? AND path = ?`, "coll", "file.md").Scan(&title, &docHash)
 	require.NoError(t, err)
 	assert.Equal(t, "New Title", title)
 	assert.Equal(t, newHash, docHash)
@@ -136,9 +140,12 @@ func TestInsertDocument_UpsertUpdatesTitle(t *testing.T) {
 
 func TestDeactivateDocuments(t *testing.T) {
 	d := openTestDB(t)
-	hash, _ := store.InsertContent(d, "content")
-	_, _ = store.InsertDocument(d, "coll", "keep.md", "Keep", hash)
-	_, _ = store.InsertDocument(d, "coll", "remove.md", "Remove", hash)
+	hash, err := store.InsertContent(d, "content")
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "keep.md", "Keep", hash)
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "remove.md", "Remove", hash)
+	require.NoError(t, err)
 
 	n, err := store.DeactivateDocuments(d, "coll", map[string]bool{"keep.md": true})
 	require.NoError(t, err)
@@ -152,9 +159,12 @@ func TestDeactivateDocuments(t *testing.T) {
 
 func TestGetActiveDocumentPaths(t *testing.T) {
 	d := openTestDB(t)
-	hash, _ := store.InsertContent(d, "content")
-	_, _ = store.InsertDocument(d, "coll", "a.md", "A", hash)
-	_, _ = store.InsertDocument(d, "coll", "b.md", "B", hash)
+	hash, err := store.InsertContent(d, "content")
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "a.md", "A", hash)
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "b.md", "B", hash)
+	require.NoError(t, err)
 
 	paths, err := store.GetActiveDocumentPaths(d, "coll")
 	require.NoError(t, err)

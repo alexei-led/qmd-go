@@ -147,7 +147,7 @@ func FindDocument(d *sql.DB, filename string, opts FindDocumentOpts) (*Retrieved
 
 // resolveDocidAndTilde handles docid lookup and ~ expansion.
 // Returns "" if docid lookup fails (caller should return not-found).
-func resolveDocidAndTilde(d *sql.DB, fp, origQuery string) (string, error) {
+func resolveDocidAndTilde(d *sql.DB, fp, _ string) (string, error) {
 	if IsDocid(fp) {
 		match, err := FindDocumentByDocid(d, fp)
 		if err != nil {

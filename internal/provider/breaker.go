@@ -79,7 +79,7 @@ func NewResilientClient(client *http.Client) *ResilientClient {
 // Do executes an HTTP request with retry and circuit breaker.
 // The build function creates a fresh request for each attempt (enabling body re-reads on retry).
 func (rc *ResilientClient) Do(ctx context.Context, build func() (*http.Request, error)) ([]byte, error) {
-	return failsafe.With[[]byte](rc.retry, rc.cb).
+	return failsafe.With(rc.retry, rc.cb).
 		WithContext(ctx).
 		Get(func() ([]byte, error) {
 			req, err := build()

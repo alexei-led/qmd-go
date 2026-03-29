@@ -16,18 +16,6 @@ type SearchResult struct {
 	Context    string  `json:"context,omitempty"`
 }
 
-// DocumentResult represents a document retrieved by get/multi-get.
-type DocumentResult struct {
-	Collection string `json:"collection"`
-	Path       string `json:"path"`
-	Title      string `json:"title"`
-	Body       string `json:"body"`
-	Hash       string `json:"hash"`
-	DocID      int64  `json:"docId"`
-	LineStart  int    `json:"lineStart,omitempty"`
-	LineEnd    int    `json:"lineEnd,omitempty"`
-}
-
 // CollectionInfo holds metadata about a stored collection.
 type CollectionInfo struct {
 	Name             string `json:"name"`
@@ -37,27 +25,6 @@ type CollectionInfo struct {
 	IncludeByDefault bool   `json:"includeByDefault"`
 	UpdateCommand    string `json:"updateCommand,omitempty"`
 	Context          string `json:"context,omitempty"`
-}
-
-// DocumentInfo represents a document row from the documents table.
-type DocumentInfo struct {
-	ID         int64  `json:"id"`
-	Collection string `json:"collection"`
-	Path       string `json:"path"`
-	Title      string `json:"title"`
-	Hash       string `json:"hash"`
-	CreatedAt  string `json:"createdAt"`
-	ModifiedAt string `json:"modifiedAt"`
-	Active     bool   `json:"active"`
-}
-
-// ContentVector represents a row from the content_vectors table.
-type ContentVector struct {
-	Hash       string `json:"hash"`
-	Seq        int    `json:"seq"`
-	Pos        int    `json:"pos"`
-	Model      string `json:"model"`
-	EmbeddedAt string `json:"embeddedAt"`
 }
 
 // StatusInfo holds the result of the status command.
