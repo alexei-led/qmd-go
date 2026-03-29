@@ -11,6 +11,7 @@ import (
 	"github.com/user/qmd-go/internal/config"
 	dbpkg "github.com/user/qmd-go/internal/db"
 	"github.com/user/qmd-go/internal/format"
+	"github.com/user/qmd-go/internal/provider"
 	"github.com/user/qmd-go/internal/store"
 )
 
@@ -135,10 +136,55 @@ func vsearchCmd() *cli.Command {
 		Usage:     "Vector similarity search",
 		ArgsUsage: "<query>",
 		Flags:     searchFlags(),
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action:    vsearchAction,
 	}
+}
+
+func vsearchAction(c *cli.Context) error {
+	if c.NArg() < 1 {
+		return fmt.Errorf("usage: qmd vsearch <query>")
+	}
+	query := c.Args().First()
+
+	cfg, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	embedder, err := provider.NewEmbedder(cfg.Providers.Embed)
+	if err != nil {
+		return fmt.Errorf("create embedder: %w", err)
+	}
+	if embedder == nil {
+		return fmt.Errorf("no embedding provider configured")
+	}
+	defer func() { _ = embedder.Close() }()
+
+	vecs, err := embedder.Embed(c.Context, []string{query}, provider.EmbedOpts{IsQuery: true})
+	if err != nil {
+		return fmt.Errorf("embed query: %w", err)
+	}
+
+	results, err := store.VectorSearch(database, vecs[0], store.VectorSearchOpts{
+		Limit:      c.Int("n"),
+		MinScore:   c.Float64("min-score"),
+		Collection: c.String("c"),
+		SearchAll:  c.Bool("all"),
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(results) == 0 {
+		fmt.Println("No results found.")
+		return nil
+	}
+
+	f := resolveFormat(c)
+	out := format.Results(results, f, format.Opts{LineNumbers: c.Bool("line-numbers")})
+	fmt.Print(out)
+	return nil
 }
 
 func queryCmd() *cli.Command {
@@ -279,10 +325,35 @@ func embedCmd() *cli.Command {
 			&cli.BoolFlag{Name: "no-incremental", Usage: "re-embed all documents"},
 			&cli.StringFlag{Name: "model", Usage: "embedding model override"},
 		},
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action: embedAction,
 	}
+}
+
+func embedAction(c *cli.Context) error {
+	cfg, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	embedder, err := provider.NewEmbedder(cfg.Providers.Embed)
+	if err != nil {
+		return fmt.Errorf("create embedder: %w", err)
+	}
+	if embedder == nil {
+		return fmt.Errorf("no embedding provider configured")
+	}
+	defer func() { _ = embedder.Close() }()
+
+	return store.EmbedDocuments(c.Context, database, embedder, store.EmbedOpts{
+		Clear:         c.Bool("clear"),
+		NoIncremental: c.Bool("no-incremental"),
+		MaxDocs:       defaultDocsPerBatch,
+	}, func(p store.EmbedProgress) {
+		if p.Current > 0 {
+			fmt.Fprintf(os.Stderr, "\rEmbedding: %d/%d", p.Current, p.Total)
+		}
+	})
 }
 
 func pullCmd() *cli.Command {

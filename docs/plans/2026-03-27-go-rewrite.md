@@ -869,16 +869,16 @@ New — replaces hugot/GoMLX from original plan
 
 Port: `src/store.ts:72-226, 1196-1452, 2820-2968`
 
-- [ ] 7a: Smart chunking with break point scoring (all patterns from algorithm section)
-- [ ] 7b: Code fence detection + never-split-inside-fences rule
-- [ ] 7c: chunkDocument() with char-based token estimation (~4 chars/token)
-- [ ] 7d: Embedding generation with batch processing (64 docs, 64MB limits)
-- [ ] 7e: Concurrent embedding coordination (SQL-level batch claiming)
-- [ ] 7f: Vector insertion — float32→bytes into content_vectors + vectors_vec
-- [ ] 7g: Vector search — two-step: vec MATCH first, then separate JOIN for metadata
-- [ ] 7h: CLI commands: `qmd embed [-f] [--provider ...]`, `qmd vsearch <text>`
-- [ ] 7i: Tests: chunking algorithm, code fence edge cases, vector round-trip
-- [ ] 7j: Benchmark: 10K-vector cosine search latency
+- [x] 7a: Smart chunking with break point scoring (all patterns from algorithm section)
+- [x] 7b: Code fence detection + never-split-inside-fences rule
+- [x] 7c: chunkDocument() with char-based token estimation (~4 chars/token)
+- [x] 7d: Embedding generation with batch processing (64 docs, 64MB limits)
+- [x] 7e: Concurrent embedding coordination (SQL-level batch claiming)
+- [x] 7f: Vector insertion — float32→bytes into content_vectors + vectors_vec
+- [x] 7g: Vector search — two-step: vec MATCH first, then separate JOIN for metadata
+- [x] 7h: CLI commands: `qmd embed [-f] [--provider ...]`, `qmd vsearch <text>`
+- [x] 7i: Tests: chunking algorithm, code fence edge cases, vector round-trip
+- [x] 7j: Benchmark: 10K-vector cosine search latency
 
 **Accept:** Embed in Go, search in TS (and vice versa). Benchmark logged.
 
