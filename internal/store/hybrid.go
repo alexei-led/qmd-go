@@ -238,26 +238,43 @@ func scoreDocuments(
 		}
 	}
 
-	// Step 7: Blend.
+	// Step 7: Blend and sort.
+	scored := blendAndSort(fused, contentMap, rerankScores, lists, sourceLabels, opts)
+
+	return scored, contentMap, docResults, nil
+}
+
+func blendAndSort(
+	fused []rrfResult,
+	contentMap map[int64]string,
+	rerankScores map[int64]float64,
+	lists []rankedList,
+	sourceLabels []string,
+	opts HybridOpts,
+) []scoredDoc {
 	scored := make([]scoredDoc, 0, len(fused))
+	hasRerank := len(rerankScores) > 0
 	for _, r := range fused {
 		if _, ok := contentMap[r.docID]; !ok {
 			continue
 		}
-		rs := rerankScores[r.docID]
-		final := blendScores(r.score, rs, r.rank)
+		var final, rs float64
+		if hasRerank {
+			rs = rerankScores[r.docID]
+			final = blendScores(r.score, rs, r.rank)
+		} else {
+			final = r.score
+		}
 		var trace *ExplainTrace
 		if opts.Explain {
 			trace = buildTrace(r, rs, final, lists, sourceLabels)
 		}
 		scored = append(scored, scoredDoc{docID: r.docID, score: final, trace: trace})
 	}
-
 	sort.Slice(scored, func(i, j int) bool {
 		return scored[i].score > scored[j].score
 	})
-
-	return scored, contentMap, docResults, nil
+	return scored
 }
 
 func buildTrace(r rrfResult, rerankScore, finalScore float64, lists []rankedList, labels []string) *ExplainTrace {

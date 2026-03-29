@@ -10,12 +10,19 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/user/qmd-go/internal/config"
 	"github.com/user/qmd-go/internal/openclaw"
 	"github.com/user/qmd-go/internal/provider"
+)
+
+const (
+	serverReadHeaderTimeout = 10 * time.Second
+	serverReadTimeout       = 30 * time.Second
+	serverWriteTimeout      = 60 * time.Second
 )
 
 // ServerOpts configures MCP server startup.
@@ -108,7 +115,13 @@ func ServeHTTP(opts ServerOpts, port int) error {
 	addr := ":" + strconv.Itoa(port)
 	slog.Info("starting MCP server", "transport", "http", "addr", addr, "index", opts.IndexName)
 
-	srv := &http.Server{Addr: addr, Handler: mux}
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: serverReadHeaderTimeout,
+		ReadTimeout:       serverReadTimeout,
+		WriteTimeout:      serverWriteTimeout,
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

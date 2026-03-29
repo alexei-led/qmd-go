@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	gomcp "github.com/mark3labs/mcp-go/mcp"
@@ -19,8 +20,11 @@ func registerRESTRoutes(mux *http.ServeMux, d *deps) {
 	mux.HandleFunc("GET /health", healthEndpoint(d))
 }
 
+const maxRequestBodyBytes = 1 << 20 // 1 MB
+
 func searchEndpoint(d *deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 		var req store.StructuredSearchRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("invalid request: %v", err)})
@@ -63,10 +67,7 @@ func resourceHandler(d *deps) func(context.Context, gomcp.ReadResourceRequest) (
 	return func(_ context.Context, req gomcp.ReadResourceRequest) ([]gomcp.ResourceContents, error) {
 		uri := req.Params.URI
 		// Strip qmd:// prefix to get path
-		path := uri
-		if len(uri) > 6 && uri[:6] == "qmd://" {
-			path = uri[6:]
-		}
+		path := strings.TrimPrefix(uri, "qmd://")
 
 		doc, notFound, err := store.FindDocument(d.db, path, store.FindDocumentOpts{IncludeBody: true})
 		if err != nil {
