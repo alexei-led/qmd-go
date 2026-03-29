@@ -308,6 +308,58 @@ func TestFindContextForPath(t *testing.T) {
 	assert.Equal(t, "collection ctx", ctx)
 }
 
+func TestRegisterCollection(t *testing.T) {
+	d := setupTestDB(t)
+	cfg := &config.Config{}
+
+	err := config.RegisterCollection(d, cfg, "", "notes", "/tmp/notes",
+		config.WithPattern("**/*.txt"),
+		config.WithContext("my notes"),
+		config.WithIgnorePatterns("*.draft"),
+	)
+	require.NoError(t, err)
+	require.Contains(t, cfg.Collections, "notes")
+	assert.Equal(t, "**/*.txt", cfg.Collections["notes"].Pattern)
+	assert.Equal(t, "my notes", cfg.Collections["notes"].Context)
+	assert.Equal(t, "*.draft", cfg.Collections["notes"].IgnorePatterns)
+
+	col, err := config.ShowCollection(d, "notes")
+	require.NoError(t, err)
+	assert.Equal(t, "**/*.txt", col.Pattern)
+	assert.Equal(t, "my notes", col.Context)
+}
+
+func TestRegisterCollection_Idempotent(t *testing.T) {
+	d := setupTestDB(t)
+	cfg := &config.Config{}
+
+	require.NoError(t, config.RegisterCollection(d, cfg, "", "notes", "/tmp/notes",
+		config.WithPattern("**/*.txt"),
+	))
+	require.NoError(t, config.RegisterCollection(d, cfg, "", "notes", "/other/path",
+		config.WithPattern("**/*.go"),
+	))
+	assert.Equal(t, "**/*.txt", cfg.Collections["notes"].Pattern, "second call should be no-op")
+}
+
+func TestRegisterCollection_DefaultPattern(t *testing.T) {
+	d := setupTestDB(t)
+	cfg := &config.Config{}
+
+	require.NoError(t, config.RegisterCollection(d, cfg, "", "docs", "/tmp/docs"))
+	assert.Equal(t, "**/*.md", cfg.Collections["docs"].Pattern)
+}
+
+func TestRegisterCollection_WritesYAML(t *testing.T) {
+	d := setupTestDB(t)
+	cfg := &config.Config{}
+	cfgPath := filepath.Join(t.TempDir(), "out.yml")
+
+	require.NoError(t, config.RegisterCollection(d, cfg, cfgPath, "docs", "/tmp/docs"))
+	_, err := os.Stat(cfgPath)
+	require.NoError(t, err, "config file should be written")
+}
+
 func TestCheckContexts(t *testing.T) {
 	dir := t.TempDir()
 	existingPath := filepath.Join(dir, "exists")

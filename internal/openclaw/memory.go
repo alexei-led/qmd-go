@@ -205,8 +205,8 @@ const (
 )
 
 // applyWeightedScoring blends vector and text scores using the configured weights.
-// Since StructuredSearch already fuses scores via RRF, we scale the combined score
-// by the dominant weight preference.
+// Uses pre-computed VecScore/LexScore from ExplainTrace to avoid coupling to
+// internal source label formats.
 func applyWeightedScoring(results []store.HybridResult, vecWeight, txtWeight float64) []scoredResult {
 	total := vecWeight + txtWeight
 	if total == 0 {
@@ -218,12 +218,16 @@ func applyWeightedScoring(results []store.HybridResult, vecWeight, txtWeight flo
 	blended := make([]scoredResult, len(results))
 	for i, r := range results {
 		var weight float64
-		if r.Explain != nil && hasSource(r.Explain.Sources, "vec") {
-			if hasSource(r.Explain.Sources, "lex") {
-				// Appeared in both vec and lex results — blend weights.
+		if r.Explain != nil {
+			hasVec := r.Explain.VecScore > 0
+			hasLex := r.Explain.LexScore > 0
+			switch {
+			case hasVec && hasLex:
 				weight = normVec*similarityBlend + normTxt*(1-similarityBlend)
-			} else {
+			case hasVec:
 				weight = normVec
+			default:
+				weight = normTxt
 			}
 		} else {
 			weight = normTxt
@@ -252,8 +256,8 @@ func applyTemporalDecay(db *sql.DB, results []scoredResult, halfLife time.Durati
 	return results
 }
 
-// ApplyTemporalDecayScore applies temporal decay to a single score (exported for testing).
-func ApplyTemporalDecayScore(score float64, age, halfLife time.Duration) float64 {
+// applyTemporalDecayScore applies temporal decay to a single score (exported for testing).
+func applyTemporalDecayScore(score float64, age, halfLife time.Duration) float64 {
 	age = max(age, 0)
 	return score * math.Pow(decayBase, -float64(age)/float64(halfLife))
 }
@@ -327,15 +331,6 @@ func pathSimilarity(a, b string) float64 {
 		}
 	}
 	return float64(shared) / float64(total)
-}
-
-func hasSource(sources []string, prefix string) bool {
-	for _, s := range sources {
-		if strings.HasPrefix(s, prefix+":") || s == prefix {
-			return true
-		}
-	}
-	return false
 }
 
 func splitPath(p string) []string {

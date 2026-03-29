@@ -5,10 +5,62 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
+
+// CollectionOption configures a collection during registration.
+type CollectionOption func(*CollectionConfig)
+
+// WithPattern sets the glob pattern for file discovery.
+func WithPattern(pattern string) CollectionOption {
+	return func(c *CollectionConfig) { c.Pattern = pattern }
+}
+
+// WithContext sets the collection context annotation.
+func WithContext(ctx string) CollectionOption {
+	return func(c *CollectionConfig) { c.Context = ctx }
+}
+
+// WithIgnorePatterns sets the ignore patterns.
+func WithIgnorePatterns(patterns string) CollectionOption {
+	return func(c *CollectionConfig) { c.IgnorePatterns = patterns }
+}
+
+// RegisterCollection adds a collection if it doesn't already exist, persists to
+// YAML (if cfgPath is non-empty), and syncs to the database. It is idempotent:
+// if the collection already exists, it returns nil without changes.
+func RegisterCollection(d *sql.DB, cfg *Config, cfgPath, name, dirPath string, opts ...CollectionOption) error {
+	if cfg.Collections == nil {
+		cfg.Collections = make(map[string]CollectionConfig)
+	}
+	if _, exists := cfg.Collections[name]; exists {
+		return nil
+	}
+
+	absPath, err := filepath.Abs(dirPath)
+	if err != nil {
+		return fmt.Errorf("abs path: %w", err)
+	}
+
+	col := CollectionConfig{
+		Path:    absPath,
+		Pattern: DefaultPattern,
+	}
+	for _, opt := range opts {
+		opt(&col)
+	}
+	cfg.Collections[name] = col
+
+	if cfgPath != "" {
+		if saveErr := SaveFile(cfgPath, cfg); saveErr != nil {
+			slog.Warn("persist config file", "path", cfgPath, "error", saveErr)
+		}
+	}
+	return SyncToDB(d, cfg)
+}
 
 // SyncToDB synchronizes the YAML collections config into the store_collections table.
 // It uses a SHA-256 hash of the serialized collections to skip no-op syncs.
@@ -70,7 +122,14 @@ func SyncToDB(d *sql.DB, cfg *Config) error {
 }
 
 // AddCollection adds a new collection to both the config file and the database.
+// Unlike RegisterCollection, it returns an error if the collection already exists
+// or if the config file cannot be saved.
 func AddCollection(d *sql.DB, cfg *Config, cfgPath, name, dirPath string) error {
+	if cfg.Collections != nil {
+		if _, exists := cfg.Collections[name]; exists {
+			return fmt.Errorf("collection %q already exists", name)
+		}
+	}
 	absPath, err := filepath.Abs(dirPath)
 	if err != nil {
 		return fmt.Errorf("abs path: %w", err)
@@ -78,14 +137,10 @@ func AddCollection(d *sql.DB, cfg *Config, cfgPath, name, dirPath string) error 
 	if cfg.Collections == nil {
 		cfg.Collections = make(map[string]CollectionConfig)
 	}
-	if _, exists := cfg.Collections[name]; exists {
-		return fmt.Errorf("collection %q already exists", name)
-	}
 	cfg.Collections[name] = CollectionConfig{
 		Path:    absPath,
 		Pattern: DefaultPattern,
 	}
-
 	if err := SaveFile(cfgPath, cfg); err != nil {
 		return err
 	}

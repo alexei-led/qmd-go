@@ -66,6 +66,7 @@ func TestStatusHandler(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.IsError)
 
+	require.NotEmpty(t, result.Content)
 	text := result.Content[0].(gomcp.TextContent).Text
 	var info store.StatusInfo
 	require.NoError(t, json.Unmarshal([]byte(text), &info))
@@ -87,6 +88,7 @@ func TestGetHandler_Found(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.IsError)
 
+	require.NotEmpty(t, result.Content)
 	text := result.Content[0].(gomcp.TextContent).Text
 	var doc map[string]any
 	require.NoError(t, json.Unmarshal([]byte(text), &doc))
@@ -105,6 +107,7 @@ func TestGetHandler_NotFound(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.IsError)
 
+	require.NotEmpty(t, result.Content)
 	text := result.Content[0].(gomcp.TextContent).Text
 	var notFound store.DocumentNotFound
 	require.NoError(t, json.Unmarshal([]byte(text), &notFound))
@@ -129,6 +132,7 @@ func TestQueryHandler_EmptySearches(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.True(t, result.IsError)
+	require.NotEmpty(t, result.Content)
 	assert.Contains(t, result.Content[0].(gomcp.TextContent).Text, "must not be empty")
 }
 

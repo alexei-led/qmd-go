@@ -2,6 +2,10 @@
 // and provides remote HTTP implementations with circuit breaker + retry.
 package provider
 
+//go:generate mockery --name=Embedder --output=mocks --outpkg=mocks --with-expecter
+//go:generate mockery --name=Reranker --output=mocks --outpkg=mocks --with-expecter
+//go:generate mockery --name=Generator --output=mocks --outpkg=mocks --with-expecter
+
 import "context"
 
 // EmbedOpts configures an embedding request.

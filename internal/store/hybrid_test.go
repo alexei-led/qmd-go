@@ -172,21 +172,58 @@ func TestQueryExpansionCacheKey(t *testing.T) {
 	assert.Len(t, k1, 64)
 }
 
-func TestDocSources(t *testing.T) {
+func TestDocSourcesAndScores(t *testing.T) {
 	lists := []rankedList{
 		{docIDs: []int64{1, 2, 3}, weight: 1.0},
 		{docIDs: []int64{2, 4}, weight: 1.0},
 	}
 	labels := []string{"fts:query", "vec:query"}
 
-	sources := docSources(2, lists, labels)
-	assert.Equal(t, []string{"fts:query", "vec:query"}, sources)
-
-	sources = docSources(4, lists, labels)
-	assert.Equal(t, []string{"vec:query"}, sources)
-
-	sources = docSources(99, lists, labels)
-	assert.Nil(t, sources)
+	tests := []struct {
+		name      string
+		docID     int64
+		lists     []rankedList
+		labels    []string
+		wantSrc   []string
+		wantVecGT bool
+		wantLexGT bool
+	}{
+		{"both sources", 2, lists, labels, []string{"fts:query", "vec:query"}, true, true},
+		{"vec only", 4, lists, labels, []string{"vec:query"}, true, false},
+		{"lex only", 1, lists, labels, []string{"fts:query"}, false, true},
+		{"not present", 99, lists, labels, nil, false, false},
+		{
+			"hyde prefix counts as vec",
+			10,
+			[]rankedList{{docIDs: []int64{10}, weight: 1.0}},
+			[]string{"hyde:doc"},
+			[]string{"hyde:doc"},
+			true, false,
+		},
+		{
+			"label out of bounds defaults to lex",
+			10,
+			[]rankedList{{docIDs: []int64{10}, weight: 1.0}},
+			[]string{},
+			nil, false, true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sources, vecScore, lexScore := docSourcesAndScores(tt.docID, tt.lists, tt.labels)
+			assert.Equal(t, tt.wantSrc, sources)
+			if tt.wantVecGT {
+				assert.Greater(t, vecScore, 0.0)
+			} else {
+				assert.Equal(t, 0.0, vecScore)
+			}
+			if tt.wantLexGT {
+				assert.Greater(t, lexScore, 0.0)
+			} else {
+				assert.Equal(t, 0.0, lexScore)
+			}
+		})
+	}
 }
 
 func TestValidateSearchQueries(t *testing.T) {

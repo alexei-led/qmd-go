@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modularity Review: QMD-Go</title>
+<style>
+  :root { --bg: #1a1b26; --fg: #a9b1d6; --accent: #7aa2f7; --warn: #e0af68; --err: #f7768e; --ok: #9ece6a; --dim: #565f89; --card: #24283b; --border: #414868; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; padding: 2rem; max-width: 960px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 1.8rem; margin-bottom: 0.3rem; }
+  h2 { color: var(--accent); font-size: 1.3rem; margin: 2rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+  h3 { color: var(--fg); font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  .meta { color: var(--dim); font-size: 0.85rem; margin-bottom: 2rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th { background: var(--card); color: var(--accent); text-align: left; padding: 0.5rem 0.75rem; border: 1px solid var(--border); }
+  td { padding: 0.5rem 0.75rem; border: 1px solid var(--border); }
+  tr:nth-child(even) td { background: var(--card); }
+  .critical { color: var(--err); font-weight: 600; }
+  .tolerable { color: var(--warn); }
+  .ok { color: var(--ok); }
+  .minor { color: var(--dim); }
+  code { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: var(--card); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.88em; }
+  pre { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; overflow-x: auto; font-size: 0.85rem; margin: 1rem 0; }
+  pre code { background: none; padding: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem; margin: 1rem 0; }
+  .card.critical-card { border-left: 3px solid var(--err); }
+  .card.ok-card { border-left: 3px solid var(--ok); }
+  .card.debt-card { border-left: 3px solid var(--warn); }
+  .badge { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 0.15em 0.5em; border-radius: 3px; margin-right: 0.3em; }
+  .badge-high { background: rgba(247,118,142,0.2); color: var(--err); }
+  .badge-low { background: rgba(158,206,106,0.2); color: var(--ok); }
+  .badge-intrusive { background: rgba(247,118,142,0.15); color: var(--err); }
+  .badge-contract { background: rgba(158,206,106,0.15); color: var(--ok); }
+  .badge-functional { background: rgba(122,162,247,0.15); color: var(--accent); }
+  .rec { margin: 0.8rem 0; padding-left: 1rem; border-left: 2px solid var(--accent); }
+  ul { margin: 0.5rem 0 0.5rem 1.5rem; }
+  li { margin: 0.2rem 0; }
+  .diagram { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.4; white-space: pre; }
+</style>
+</head>
+<body>
+
+<h1>Modularity Review: QMD-Go</h1>
+<div class="meta">2026-03-29 &middot; Balanced Coupling model (Vlad Khononov) &middot; All internal packages + CLI entrypoint</div>
+
+<h2>Domain Classification</h2>
+<table>
+  <tr><th>Package</th><th>Subdomain</th><th>Rationale</th></tr>
+  <tr><td><code>store</code></td><td><strong>Core</strong></td><td>Primary value: hybrid search, indexing, chunking, RRF</td></tr>
+  <tr><td><code>openclaw</code></td><td><strong>Core</strong></td><td>Key differentiator: multi-agent memory search</td></tr>
+  <tr><td><code>provider</code></td><td>Generic</td><td>Pluggable embedding/reranking backends</td></tr>
+  <tr><td><code>mcp</code></td><td>Supporting</td><td>Integration layer exposing store via MCP protocol</td></tr>
+  <tr><td><code>config</code></td><td>Generic</td><td>YAML config + XDG path resolution</td></tr>
+  <tr><td><code>db</code></td><td>Generic</td><td>SQLite connection setup</td></tr>
+  <tr><td><code>format</code></td><td>Generic</td><td>Output rendering (JSON, CSV, XML, MD)</td></tr>
+</table>
+
+<h2>Critical Issues</h2>
+
+<div class="card critical-card">
+  <h3>Issue #1: openclaw &rarr; store (Explain trace internals)</h3>
+  <p><span class="badge badge-intrusive">Intrusive</span> <span class="badge badge-low">Low distance</span> <span class="badge badge-high">High volatility</span></p>
+  <p style="margin-top:0.8rem"><strong>What's shared:</strong> <code>memory.go</code> reads <code>HybridResult.Explain.Sources</code> string values and pattern-matches on <code>"vec:"</code> / <code>"lex:"</code> prefixes to split vector vs. lexical scores for weighted blending.</p>
+  <p style="margin-top:0.5rem"><strong>Why it matters:</strong> These string labels are implementation details of <code>store/hybrid.go</code>'s RRF fusion. Any change to source labeling, explain trace structure, or new search types (e.g. <code>"hyde:"</code>) silently breaks OpenClaw's scoring. <em>Silent semantic failure</em> &mdash; no crash, just wrong results.</p>
+  <div class="rec">
+    <strong>Fix:</strong> Add <code>VectorScore</code> / <code>LexicalScore</code> fields to <code>HybridResult</code> so OpenClaw reads pre-computed component scores instead of parsing source label strings. ~35 lines across 2 files.
+  </div>
+</div>
+
+<div class="card critical-card">
+  <h3>Issue #2: openclaw &rarr; config (Config mutation)</h3>
+  <p><span class="badge badge-intrusive">Intrusive</span> <span class="badge badge-low">Low distance</span> <span class="badge badge-high">High volatility</span></p>
+  <p style="margin-top:0.8rem"><strong>What's shared:</strong> <code>sidecar.go</code> directly mutates <code>cfg.Collections</code> map to inject <code>"openclaw-memory"</code>, then calls <code>config.SaveFile()</code> + <code>config.SyncToDB()</code>.</p>
+  <p style="margin-top:0.5rem"><strong>Why it matters:</strong> Multi-agent support means multiple memory directories per agent. The current single-collection mutation pattern requires touching both <code>openclaw/sidecar.go</code> and <code>config/</code> internals for every change to collection registration.</p>
+  <div class="rec">
+    <strong>Fix:</strong> Add <code>config.RegisterCollection(db, cfg, cfgPath, name, opts)</code> that encapsulates mutate-save-sync. Provides a natural extension point for multi-agent registration. ~40 lines across 2 files.
+  </div>
+</div>
+
+<h2>Tolerable Debt</h2>
+
+<div class="card debt-card">
+  <h3>Issue #3: config &rarr; database (Raw SQL for store tables)</h3>
+  <p><span class="badge badge-intrusive">Intrusive</span> <span class="badge badge-low">Low distance</span> <span class="badge badge-low">Low volatility</span></p>
+  <p style="margin-top:0.8rem"><code>config/collections.go</code> and <code>config/context.go</code> execute raw SQL against <code>store_collections</code> and <code>store_config</code> tables &mdash; tables whose schema is defined in <code>store/schema.go</code>.</p>
+  <p style="margin-top:0.5rem"><strong>Why tolerable:</strong> Schema is frozen for TypeScript interchangeability. Revisit if TS compatibility is dropped.</p>
+</div>
+
+<div class="card debt-card">
+  <h3>Issue #4: mcp/tools.go &rarr; database (Raw SQL bypass)</h3>
+  <p><span class="badge badge-intrusive">Intrusive</span> <span class="badge badge-low">Low distance</span> <span class="badge badge-low">Low volatility</span></p>
+  <p style="margin-top:0.8rem"><code>statusHandler</code> runs direct <code>SELECT COUNT(*)</code> queries instead of calling <code>store.GetStatus()</code>. Minor &mdash; replace when convenient.</p>
+</div>
+
+<div class="card debt-card">
+  <h3>Issue #5: CLI &harr; MCP orchestration duplication</h3>
+  <p style="margin-top:0.5rem">CLI commands and MCP tool handlers duplicate identical store call sequences for <code>get</code>, <code>multi-get</code>, and partially <code>query</code>. Cohesion issue, not coupling. Monitor for drift bugs.</p>
+</div>
+
+<h2>Well-Balanced Integrations</h2>
+
+<div class="card ok-card">
+  <h3>store &rarr; provider (Interface contracts) &check;</h3>
+  <p><span class="badge badge-contract">Contract</span> <span class="badge badge-low">Low distance</span> <span class="badge badge-high">High volatility</span></p>
+  <p style="margin-top:0.5rem">Store calls <code>Embedder.Embed()</code>, <code>Reranker.Rerank()</code>, <code>Generator.Generate()</code> through clean interfaces. The right abstraction level &mdash; swapping local/remote backends doesn't touch search logic.</p>
+</div>
+
+<div class="card ok-card">
+  <h3>format &rarr; store (Read-only value types) &check;</h3>
+  <p><span class="badge badge-functional">Functional</span> <span class="badge badge-low">Low distance</span> <span class="badge badge-low">Low volatility</span></p>
+  <p style="margin-top:0.5rem">Pure rendering functions. No side effects, no implicit knowledge.</p>
+</div>
+
+<div class="card ok-card">
+  <h3>main.go orchestration &check;</h3>
+  <p><span class="badge badge-functional">Functional</span> <span class="badge badge-low">Low distance</span> <span class="badge badge-low">Low volatility</span></p>
+  <p style="margin-top:0.5rem">Clean pipeline: <code>config.Load()</code> &rarr; <code>db.Open()</code> &rarr; <code>store.Init()</code> &rarr; <code>provider.New*()</code>. Appropriate for an entrypoint.</p>
+</div>
+
+<div class="card ok-card">
+  <h3>db package isolation &check;</h3>
+  <p style="margin-top:0.5rem"><code>db.Open()</code> returns <code>*sql.DB</code> and nothing else. Zero business domain knowledge. Minimal contract coupling.</p>
+</div>
+
+<h2>Summary</h2>
+<table>
+  <tr><th>#</th><th>Integration</th><th>Strength</th><th>Distance</th><th>Volatility</th><th>Verdict</th></tr>
+  <tr><td>1</td><td>openclaw &rarr; store Explain trace</td><td>Intrusive</td><td>Low</td><td class="critical">High</td><td class="critical">Critical</td></tr>
+  <tr><td>2</td><td>openclaw &rarr; config mutation</td><td>Intrusive</td><td>Low</td><td class="critical">High</td><td class="critical">Critical</td></tr>
+  <tr><td>3</td><td>config &rarr; DB raw SQL</td><td>Intrusive</td><td>Low</td><td>Low</td><td class="tolerable">Tolerable</td></tr>
+  <tr><td>4</td><td>mcp &rarr; DB raw SQL</td><td>Intrusive</td><td>Low</td><td>Low</td><td class="minor">Minor</td></tr>
+  <tr><td>5</td><td>CLI &harr; MCP duplication</td><td>&mdash;</td><td>Low</td><td>Moderate</td><td class="tolerable">Monitor</td></tr>
+  <tr><td>&mdash;</td><td>store &rarr; provider interfaces</td><td>Contract</td><td>Low</td><td>High</td><td class="ok">&check; Balanced</td></tr>
+  <tr><td>&mdash;</td><td>format &rarr; store types</td><td>Functional</td><td>Low</td><td>Low</td><td class="ok">&check; Balanced</td></tr>
+  <tr><td>&mdash;</td><td>main.go pipeline</td><td>Functional</td><td>Low</td><td>Low</td><td class="ok">&check; Balanced</td></tr>
+</table>
+
+<h2>Priority Actions</h2>
+<ol style="margin-left:1.5rem">
+  <li style="margin:0.5rem 0"><strong>Issue #1 &mdash; Typed source scores.</strong> Add <code>VectorScore</code>/<code>LexicalScore</code> fields to <code>HybridResult</code>. ~35 lines, 2 files.</li>
+  <li style="margin:0.5rem 0"><strong>Issue #2 &mdash; Collection registration API.</strong> Add <code>config.RegisterCollection()</code> encapsulating mutate-save-sync. ~40 lines, 2 files. Prepares for multi-agent.</li>
+  <li style="margin:0.5rem 0"><strong>Issues #3&ndash;5</strong> &mdash; No action needed now.</li>
+</ol>
+
+<h2>Architecture</h2>
+<pre class="diagram"><code>┌─────────────────────────────────────────────────────┐
+│                   cmd/qmd/main.go                    │
+│              (CLI orchestration + wiring)             │
+└──┬──────┬──────┬──────┬──────┬──────┬───────────────┘
+   │      │      │      │      │      │
+   ▼      ▼      ▼      ▼      ▼      ▼
+┌──────┐┌──────┐┌──────┐┌──────────┐┌────────┐┌──────┐
+│config││  db  ││format││ provider ││  store  ││ mcp  │
+│      ││      ││      ││          ││         ││      │
+│ YAML ││SQLite││ JSON ││Embedder  ││ Search  ││ MCP  │
+│ paths││ WAL  ││ CSV  ││Reranker  ││ Index   ││ REST │
+│ sync ││      ││ XML  ││Generator ││ Hybrid  ││      │
+└──┬───┘└──────┘└──────┘└──────────┘└────┬────┘└──┬───┘
+   │                                      │        │
+   │  ⚠ Intrusive: raw SQL               │        │
+   │  on store_collections table          │        │
+   ├──────────────────────────────────────┘        │
+   │                                               │
+   │         ┌──────────┐                          │
+   │         │ openclaw │◄─────────────────────────┘
+   │         │          │   (conditional sidecar)
+   │  ⚠ ────│ memory   │
+   │ mutates │ search   │──⚠── parses Explain.Sources
+   │ Config  │          │      string labels
+   │         └──────────┘
+   │
+   ▼
+  [DB: store_collections, store_config]
+
+⚠ = unbalanced coupling in volatile area (Issues #1, #2)</code></pre>
+
+</body>
+</html>

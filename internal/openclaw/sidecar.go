@@ -36,7 +36,10 @@ type SetupOpts struct {
 func Setup(s *server.MCPServer, opts SetupOpts) error {
 	memDir := DefaultMemoryDir()
 
-	if err := ensureMemoryCollection(opts.DB, opts.Config, opts.CfgPath, memDir); err != nil {
+	if err := config.RegisterCollection(opts.DB, opts.Config, opts.CfgPath, MemoryCollectionName, memDir,
+		config.WithPattern("**/*.md"),
+		config.WithContext("OpenClaw workspace memory files"),
+	); err != nil {
 		return fmt.Errorf("openclaw setup: %w", err)
 	}
 
@@ -47,35 +50,4 @@ func Setup(s *server.MCPServer, opts SetupOpts) error {
 
 	slog.Info("openclaw sidecar enabled", "memoryDir", memDir, "collection", MemoryCollectionName)
 	return nil
-}
-
-// ensureMemoryCollection creates the memory collection if it doesn't exist.
-func ensureMemoryCollection(db *sql.DB, cfg *config.Config, cfgPath, memDir string) error {
-	if cfg.Collections == nil {
-		cfg.Collections = make(map[string]config.CollectionConfig)
-	}
-
-	if _, exists := cfg.Collections[MemoryCollectionName]; exists {
-		return nil // already configured
-	}
-
-	absDir, err := filepath.Abs(memDir)
-	if err != nil {
-		return fmt.Errorf("abs path: %w", err)
-	}
-
-	cfg.Collections[MemoryCollectionName] = config.CollectionConfig{
-		Path:    absDir,
-		Pattern: "**/*.md",
-		Context: "OpenClaw workspace memory files",
-	}
-
-	if cfgPath != "" {
-		if err := config.SaveFile(cfgPath, cfg); err != nil {
-			slog.Warn("failed to save openclaw collection to config", "error", err)
-			// Non-fatal: we'll still sync to DB
-		}
-	}
-
-	return config.SyncToDB(db, cfg)
 }

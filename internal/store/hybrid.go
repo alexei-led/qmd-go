@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -51,6 +50,8 @@ type ExplainTrace struct {
 	BlendWeight float64  `json:"blendWeight"`
 	FinalScore  float64  `json:"finalScore"`
 	Sources     []string `json:"sources"`
+	VecScore    float64  `json:"vecScore,omitempty"`
+	LexScore    float64  `json:"lexScore,omitempty"`
 }
 
 // chunkInfo holds a selected chunk for a document.
@@ -285,9 +286,11 @@ func buildTrace(r rrfResult, rerankScore, finalScore float64, lists []rankedList
 	case r.rank <= 9: //nolint:mnd
 		w = 0.60
 	}
+	sources, vecScore, lexScore := docSourcesAndScores(r.docID, lists, labels)
 	return &ExplainTrace{
 		RRFScore: r.score, RRFRank: r.rank, RerankScore: rerankScore,
-		BlendWeight: w, FinalScore: finalScore, Sources: docSources(r.docID, lists, labels),
+		BlendWeight: w, FinalScore: finalScore, Sources: sources,
+		VecScore: vecScore, LexScore: lexScore,
 	}
 }
 
@@ -540,15 +543,29 @@ func rerankCacheKey(query, chunkText string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// docSources finds which source lists a docID appeared in.
-func docSources(docID int64, lists []rankedList, labels []string) []string {
-	var sources []string
+// docSourcesAndScores finds which source lists a docID appeared in and computes
+// the RRF contribution split by vector vs lexical sources in a single pass.
+func docSourcesAndScores(docID int64, lists []rankedList, labels []string) (sources []string, vecScore, lexScore float64) {
 	for i, list := range lists {
-		if slices.Contains(list.docIDs, docID) {
+		for rank, id := range list.docIDs {
+			if id != docID {
+				continue
+			}
 			if i < len(labels) {
 				sources = append(sources, labels[i])
 			}
+			contribution := list.weight / float64(RRFk+rank)
+			label := ""
+			if i < len(labels) {
+				label = labels[i]
+			}
+			if strings.HasPrefix(label, "vec:") || strings.HasPrefix(label, "hyde:") {
+				vecScore += contribution
+			} else {
+				lexScore += contribution
+			}
+			break
 		}
 	}
-	return sources
+	return sources, vecScore, lexScore
 }

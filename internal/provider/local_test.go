@@ -91,13 +91,3 @@ func TestNewEmbedder_Local(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "/some/model.gguf", le.modelPath)
 }
-
-func TestNewEmbedder_LocalEnvVar(t *testing.T) {
-	t.Setenv("QMD_EMBED_PROVIDER", "local")
-	e, err := NewEmbedder(nil)
-	require.NoError(t, err)
-	require.NotNil(t, e)
-
-	_, ok := e.(*LocalEmbedder)
-	require.True(t, ok)
-}

@@ -164,3 +164,13 @@ Italian cuisine basics and techniques.', '2024-01-01T00:00:00Z')`)
 }
 
 func ptr(s string) *string { return &s }
+
+func setupEmptyTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	d, err := db.Open(dbPath)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = d.Close() })
+	require.NoError(t, InitializeDatabase(d))
+	return d
+}

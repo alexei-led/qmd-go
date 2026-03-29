@@ -57,20 +57,23 @@ func TestHashContent(t *testing.T) {
 	assert.NotEqual(t, h, store.HashContent("world"))
 }
 
-func TestExtractTitle_Markdown(t *testing.T) {
-	assert.Equal(t, "My Title", store.ExtractTitle("# My Title\n\nBody", "file.md"))
-	assert.Equal(t, "Sub", store.ExtractTitle("## Sub\n\nBody", "file.md"))
-	assert.Equal(t, "Deep", store.ExtractTitle("### Deep\n\nBody", "file.md"))
-}
-
-func TestExtractTitle_OrgMode(t *testing.T) {
-	assert.Equal(t, "Org Title", store.ExtractTitle("#+TITLE: Org Title\n\nBody", "file.org"))
-	assert.Equal(t, "Lower", store.ExtractTitle("#+title: Lower\n\nBody", "file.org"))
-}
-
-func TestExtractTitle_Fallback(t *testing.T) {
-	assert.Equal(t, "my notes", store.ExtractTitle("no heading here", "my-notes.md"))
-	assert.Equal(t, "hello world", store.ExtractTitle("", "hello_world.txt"))
+func TestExtractTitle(t *testing.T) {
+	tests := []struct {
+		name, content, path, want string
+	}{
+		{"markdown h1", "# My Title\n\nBody", "file.md", "My Title"},
+		{"markdown h2", "## Sub\n\nBody", "file.md", "Sub"},
+		{"markdown h3", "### Deep\n\nBody", "file.md", "Deep"},
+		{"org title", "#+TITLE: Org Title\n\nBody", "file.org", "Org Title"},
+		{"org lowercase", "#+title: Lower\n\nBody", "file.org", "Lower"},
+		{"fallback dashes", "no heading here", "my-notes.md", "my notes"},
+		{"fallback underscores", "", "hello_world.txt", "hello world"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, store.ExtractTitle(tt.content, tt.path))
+		})
+	}
 }
 
 func TestHandelize(t *testing.T) {

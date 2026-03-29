@@ -2,7 +2,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -ldflags "-s -w -X main.version=$(VERSION)"
 BIN     := qmd
 
-.PHONY: build test lint fmt release clean
+.PHONY: build test lint fmt mock release clean
 
 build:
 	go build $(LDFLAGS) -o $(BIN) ./cmd/qmd/
@@ -16,6 +16,9 @@ lint:
 fmt:
 	gofumpt -w .
 	goimports -w .
+
+mock:
+	go generate ./internal/provider/...
 
 release: clean
 	GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BIN)-darwin-arm64 ./cmd/qmd/

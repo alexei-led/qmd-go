@@ -65,6 +65,7 @@ func TestMemoryGetHandler_Found(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.IsError)
 
+	require.NotEmpty(t, result.Content)
 	text := result.Content[0].(gomcp.TextContent).Text
 	var doc map[string]any
 	require.NoError(t, json.Unmarshal([]byte(text), &doc))
@@ -82,6 +83,7 @@ func TestMemoryGetHandler_NotFound(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.IsError)
 
+	require.NotEmpty(t, result.Content)
 	text := result.Content[0].(gomcp.TextContent).Text
 	var doc map[string]any
 	require.NoError(t, json.Unmarshal([]byte(text), &doc))
@@ -98,7 +100,7 @@ func TestMemoryGetHandler_MissingPath(t *testing.T) {
 	require.True(t, result.IsError)
 }
 
-func TestApplyTemporalDecayScore(t *testing.T) {
+func TestTemporalDecayScore(t *testing.T) {
 	halfLife := 30 * 24 * time.Hour
 
 	tests := []struct {
@@ -115,7 +117,7 @@ func TestApplyTemporalDecayScore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := ApplyTemporalDecayScore(1.0, tt.age, halfLife)
+			result := applyTemporalDecayScore(1.0, tt.age, halfLife)
 			assert.Greater(t, result, tt.wantMin, "score too low")
 			assert.Less(t, result, tt.wantMax, "score too high")
 		})
@@ -160,15 +162,50 @@ func TestPathSimilarity(t *testing.T) {
 }
 
 func TestApplyWeightedScoring(t *testing.T) {
-	results := []store.HybridResult{
-		{SearchResult: store.SearchResult{Score: 1.0}},
-		{SearchResult: store.SearchResult{Score: 0.5}},
-	}
+	vecWeight := DefaultVectorWeight // 0.7
+	txtWeight := DefaultTextWeight   // 0.3
 
-	scored := applyWeightedScoring(results, DefaultVectorWeight, DefaultTextWeight)
-	assert.Len(t, scored, 2)
-	assert.Greater(t, scored[0].adjustedScore, scored[1].adjustedScore)
-	assert.Greater(t, scored[0].adjustedScore, 0.0)
+	tests := []struct {
+		name      string
+		result    store.HybridResult
+		wantDelta float64
+	}{
+		{
+			"nil explain → text weight",
+			store.HybridResult{SearchResult: store.SearchResult{Score: 1.0}},
+			1.0 * (scoreBaseline + txtWeight),
+		},
+		{
+			"vec only → vec weight",
+			store.HybridResult{
+				SearchResult: store.SearchResult{Score: 1.0},
+				Explain:      &store.ExplainTrace{VecScore: 0.5},
+			},
+			1.0 * (scoreBaseline + vecWeight),
+		},
+		{
+			"lex only → text weight",
+			store.HybridResult{
+				SearchResult: store.SearchResult{Score: 1.0},
+				Explain:      &store.ExplainTrace{LexScore: 0.3},
+			},
+			1.0 * (scoreBaseline + txtWeight),
+		},
+		{
+			"both → blended weight",
+			store.HybridResult{
+				SearchResult: store.SearchResult{Score: 1.0},
+				Explain:      &store.ExplainTrace{VecScore: 0.4, LexScore: 0.2},
+			},
+			1.0 * (scoreBaseline + vecWeight*similarityBlend + txtWeight*(1-similarityBlend)),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scored := applyWeightedScoring([]store.HybridResult{tt.result}, vecWeight, txtWeight)
+			assert.InDelta(t, tt.wantDelta, scored[0].adjustedScore, 0.001)
+		})
+	}
 }
 
 func TestSetup_RegistersTools(t *testing.T) {
@@ -195,8 +232,14 @@ func TestEnsureMemoryCollection_Idempotent(t *testing.T) {
 	env := setupTestDB(t)
 	memDir := t.TempDir()
 
-	require.NoError(t, ensureMemoryCollection(env.db, env.cfg, "", memDir))
-	require.NoError(t, ensureMemoryCollection(env.db, env.cfg, "", memDir))
+	require.NoError(t, config.RegisterCollection(env.db, env.cfg, "", MemoryCollectionName, memDir,
+		config.WithPattern("**/*.md"),
+		config.WithContext("OpenClaw workspace memory files"),
+	))
+	require.NoError(t, config.RegisterCollection(env.db, env.cfg, "", MemoryCollectionName, memDir,
+		config.WithPattern("**/*.md"),
+		config.WithContext("OpenClaw workspace memory files"),
+	))
 
 	var count int
 	err := env.db.QueryRow(`SELECT COUNT(*) FROM store_collections WHERE name = ?`, MemoryCollectionName).Scan(&count)
