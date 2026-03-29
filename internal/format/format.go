@@ -29,7 +29,7 @@ type Opts struct {
 
 // Results formats search results in the requested format.
 func Results(results []store.SearchResult, f Format, opts Opts) string {
-	switch f {
+	switch f { //nolint:exhaustive
 	case JSON:
 		return formatJSON(results)
 	case CSV:
@@ -160,7 +160,7 @@ func formatDefault(results []store.SearchResult, opts Opts) string {
 
 // MultiGetResults formats multi-get results in the requested format.
 func MultiGetResults(results []store.MultiGetResult, f Format) string {
-	switch f {
+	switch f { //nolint:exhaustive
 	case JSON:
 		data, err := json.MarshalIndent(results, "", "  ")
 		if err != nil {
@@ -204,7 +204,7 @@ func multiGetDefault(results []store.MultiGetResult) string {
 
 // LsResults formats ls entries in the requested format.
 func LsResults(entries []store.LsEntry, f Format) string {
-	switch f {
+	switch f { //nolint:exhaustive
 	case JSON:
 		data, err := json.MarshalIndent(entries, "", "  ")
 		if err != nil {

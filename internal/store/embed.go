@@ -192,21 +192,18 @@ func claimBatch(d *sql.DB, limit int, reembed bool) ([]embedItem, error) {
 		return nil, fmt.Errorf("claim batch: %w", err)
 	}
 
+	defer func() { _ = rows.Close() }()
+
 	var hashes []string
 	for rows.Next() {
 		var h string
 		if err := rows.Scan(&h); err != nil {
-			_ = rows.Close()
 			return nil, fmt.Errorf("scan claimed hash: %w", err)
 		}
 		hashes = append(hashes, h)
 	}
 	if err := rows.Err(); err != nil {
-		_ = rows.Close()
 		return nil, fmt.Errorf("iterate claimed rows: %w", err)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, fmt.Errorf("close claimed rows: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

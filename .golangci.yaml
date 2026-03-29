@@ -1,22 +1,128 @@
 version: "2"
+run:
+  timeout: 5m
+  issues-exit-code: 2
+  allow-parallel-runners: true
 linters:
+  disable-all: true
   enable:
-    - gocyclo
+    # bugs & correctness
+    - asasalint
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - govet
+    - makezero
+    - musttag
+    - reassign
+    - sqlclosecheck
+    - staticcheck
+    # style & consistency
+    - asciicheck
+    - decorder
+    - dogsled
+    - dupword
+    - goconst
+    - gocritic
+    - goprintffuncname
+    - grouper
+    - importas
+    - misspell
+    - nakedret
+    - nolintlint
+    - predeclared
+    - revive
+    - unconvert
+    - unused
+    - usestdlibvars
+    - whitespace
+    # performance
+    - ineffassign
+    - prealloc
+    # complexity
+    - dupl
     - funlen
+    - gocognit
+    - gocyclo
     - mnd
-linters-settings:
-  gocyclo:
-    min-complexity: 15
-  funlen:
-    lines: 105
-    statements: 60
-  mnd:
-    ignored-functions:
-      - math.*
-      - strconv.*
+    # security
+    - gosec
+    # logging
+    - sloglint
+  settings:
+    gocyclo:
+      min-complexity: 15
+    funlen:
+      lines: 105
+      statements: 60
+    dupl:
+      threshold: 100
+    goconst:
+      min-len: 2
+      min-occurrences: 3
+    misspell:
+      locale: US
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - rangeValCopy
+        - hugeParam
+        - unnamedResult
+        - whyNoLint
+    gosec:
+      excludes:
+        - G101 # false positives on hash variable names
+        - G201 # SQL formatting with trusted internal values
+        - G202 # SQL concatenation with trusted internal values
+        - G204 # CLI tool legitimately spawns subprocesses
+        - G304 # CLI tool reads user-specified files
+        - G306 # test files with 0644 permissions
+        - G601
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+        - name: exported
+          disabled: true
+    mnd:
+      ignored-functions:
+        - math.*
+        - strconv.*
+        - fmt.Sprintf
 formatters:
   enable:
     - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/user/qmd-go
 issues:
   exclude-dirs:
     - vendor
+    - internal/provider/mocks
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - bodyclose
+        - gosec
+        - dupl
+        - gocognit
+        - goconst
+        - gocyclo
+        - errcheck
+        - mnd
+        - nolintlint
+        - perfsprint

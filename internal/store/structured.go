@@ -30,7 +30,7 @@ func StructuredSearch(
 	}
 	candidateLimit := req.CandidateLimit
 	if candidateLimit <= 0 {
-		candidateLimit = 40 //nolint:mnd
+		candidateLimit = 40
 	}
 
 	lists, sourceLabels, primaryQuery := buildStructuredLists(ctx, d, req, embedder, candidateLimit)

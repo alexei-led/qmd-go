@@ -61,6 +61,8 @@ func ListContexts(cfg *Config) []ContextEntry {
 // It checks (in order): exact path match, parent directory matches (most specific first),
 // global contexts. Returns the first matching context string, or the collection-level
 // context from the database as fallback.
+//
+//nolint:gocyclo
 func FindContextForPath(d *sql.DB, cfg *Config, docPath, collection string) string {
 	absPath, err := filepath.Abs(docPath)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	gomcp "github.com/mark3labs/mcp-go/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/user/qmd-go/internal/config"
 	"github.com/user/qmd-go/internal/db"
 	"github.com/user/qmd-go/internal/store"
@@ -306,7 +307,7 @@ func TestHealthEndpoint(t *testing.T) {
 	seedDoc(t, d.db, "notes", "test.md", "abc123def456", "Test Doc", "hello")
 
 	handler := healthEndpoint(d)
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
 	rec := httptest.NewRecorder()
 	handler(rec, req)
 

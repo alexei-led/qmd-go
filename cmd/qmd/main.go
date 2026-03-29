@@ -393,7 +393,10 @@ func getAction(c *cli.Context) error {
 		return err
 	}
 	if notFound != nil {
-		data, _ := json.MarshalIndent(notFound, "", "  ")
+		data, err := json.MarshalIndent(notFound, "", "  ")
+		if err != nil {
+			return fmt.Errorf("marshal not-found: %w", err)
+		}
 		fmt.Println(string(data))
 		return nil
 	}
@@ -901,7 +904,7 @@ func collectionRemoveAction(c *cli.Context) error {
 	return nil
 }
 
-func collectionRenameAction(c *cli.Context) error {
+func collectionRenameAction(c *cli.Context) error { //nolint:dupl
 	if c.NArg() < 2 { //nolint:mnd
 		return fmt.Errorf("usage: qmd collection rename <old> <new>")
 	}
@@ -920,7 +923,7 @@ func collectionRenameAction(c *cli.Context) error {
 	return nil
 }
 
-func collectionSetUpdateAction(c *cli.Context) error {
+func collectionSetUpdateAction(c *cli.Context) error { //nolint:dupl
 	if c.NArg() < 2 { //nolint:mnd
 		return fmt.Errorf("usage: qmd collection set-update <name> <command>")
 	}

@@ -48,7 +48,7 @@ func headingScore(text string, pos int) int {
 
 var nonHeadingPatterns = []breakPattern{
 	{regexp.MustCompile("\\n```"), 80, "codeblock"},
-	{regexp.MustCompile(`\n(?:---|\*\*\*|___)\s*\n`), 60, "hr"},
+	{regexp.MustCompile(`\n(?:---|\*{3}|___)\s*\n`), 60, "hr"},
 	{regexp.MustCompile(`\n\n+`), 20, "blank"},
 	{regexp.MustCompile(`\n[-*]\s`), 5, "list"},
 	{regexp.MustCompile(`\n\d+\.\s`), 5, "numlist"},

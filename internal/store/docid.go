@@ -51,11 +51,11 @@ type FindDocumentOpts struct {
 
 // LsEntry represents one line in ls output.
 type LsEntry struct {
-	Path         string
-	Size         int
-	ModifiedAt   string
-	FileCount    int
-	IsCollection bool
+	Path         string `json:"path"`
+	Size         int    `json:"size"`
+	ModifiedAt   string `json:"modifiedAt"`
+	FileCount    int    `json:"fileCount"`
+	IsCollection bool   `json:"isCollection"`
 }
 
 const bytesPerKB = 1024
@@ -80,7 +80,7 @@ func NormalizeDocid(docid string) string {
 // IsDocid returns true if the input looks like a docid (hex string, 6+ chars).
 func IsDocid(input string) bool {
 	s := NormalizeDocid(input)
-	return len(s) >= 6 && hexRe.MatchString(s) //nolint:mnd
+	return len(s) >= 6 && hexRe.MatchString(s)
 }
 
 // FindDocumentByDocid resolves a short hash prefix to a document.

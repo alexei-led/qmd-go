@@ -89,6 +89,7 @@ type GlobMatch struct {
 
 // MatchFilesByGlob returns all active documents matching the given glob pattern.
 func MatchFilesByGlob(d *sql.DB, pattern string) ([]GlobMatch, error) {
+	//nolint:dupword
 	rows, err := d.Query(`SELECT 'qmd://' || d.collection || '/' || d.path,
 		d.collection || '/' || d.path,
 		d.path, LENGTH(content.doc)

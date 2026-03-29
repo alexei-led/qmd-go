@@ -10,6 +10,7 @@ import (
 	"time"
 
 	gomcp "github.com/mark3labs/mcp-go/mcp"
+
 	"github.com/user/qmd-go/internal/store"
 )
 
@@ -93,5 +94,7 @@ func resourceHandler(d *deps) func(context.Context, gomcp.ReadResourceRequest) (
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		slog.Error("write json", "error", err)
+	}
 }

@@ -116,21 +116,23 @@ func lookupDocByHash(d *sql.DB, hash, collection string, searchAll bool) (Search
 	return r, true, nil
 }
 
+const float32Bytes = 4
+
 // Float32ToBytes converts a float32 slice to little-endian bytes for sqlite-vec.
 func Float32ToBytes(v []float32) []byte {
-	buf := make([]byte, len(v)*4) //nolint:mnd
+	buf := make([]byte, len(v)*float32Bytes)
 	for i, f := range v {
-		binary.LittleEndian.PutUint32(buf[i*4:], math.Float32bits(f)) //nolint:mnd
+		binary.LittleEndian.PutUint32(buf[i*float32Bytes:], math.Float32bits(f))
 	}
 	return buf
 }
 
 // BytesToFloat32 converts little-endian bytes back to a float32 slice.
 func BytesToFloat32(b []byte) []float32 {
-	n := len(b) / 4 //nolint:mnd
+	n := len(b) / float32Bytes
 	v := make([]float32, n)
 	for i := range n {
-		v[i] = math.Float32frombits(binary.LittleEndian.Uint32(b[i*4:])) //nolint:mnd
+		v[i] = math.Float32frombits(binary.LittleEndian.Uint32(b[i*float32Bytes:]))
 	}
 	return v
 }

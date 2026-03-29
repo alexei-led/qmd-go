@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
 	"github.com/user/qmd-go/internal/config"
 	"github.com/user/qmd-go/internal/openclaw"
 	"github.com/user/qmd-go/internal/provider"
@@ -133,7 +135,7 @@ func ServeHTTP(opts ServerOpts, port int) error {
 
 	select {
 	case err := <-errCh:
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("http server: %w", err)
 		}
 	case <-ctx.Done():

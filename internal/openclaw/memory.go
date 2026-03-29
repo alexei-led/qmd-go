@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
+
 	"github.com/user/qmd-go/internal/provider"
 	"github.com/user/qmd-go/internal/store"
 )
@@ -98,9 +99,8 @@ func memorySearchHandler(
 
 		candidateLimit := limit * cfg.CandidateMultiplier
 
-		var searches []store.SearchQuery
-		searches = append(searches, store.SearchQuery{Type: "vec", Query: query})
-		searches = append(searches, store.SearchQuery{Type: "lex", Query: query})
+		searches := make([]store.SearchQuery, 0, 2) //nolint:mnd
+		searches = append(searches, store.SearchQuery{Type: "vec", Query: query}, store.SearchQuery{Type: "lex", Query: query})
 
 		ssReq := store.StructuredSearchRequest{
 			Searches:       searches,

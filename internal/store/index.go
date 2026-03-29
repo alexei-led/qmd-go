@@ -124,6 +124,8 @@ func titleFromFilename(filename string) string {
 //   - Non-letter/number -> dash separator
 //   - Preserve file extension
 //   - Must have at least one letter, number, or emoji
+//
+//nolint:gocyclo
 func Handelize(path string) string {
 	ext := filepath.Ext(path)
 	name := strings.TrimSuffix(path, ext)
@@ -189,6 +191,8 @@ func Handelize(path string) string {
 }
 
 // isEmoji returns true for common emoji Unicode ranges.
+//
+//nolint:gocyclo
 func isEmoji(r rune) bool {
 	return (r >= 0x1F600 && r <= 0x1F64F) || // emoticons
 		(r >= 0x1F300 && r <= 0x1F5FF) || // misc symbols & pictographs

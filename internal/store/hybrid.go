@@ -81,7 +81,7 @@ func HybridQuery(
 		opts.Limit = 10
 	}
 	if opts.CandidateLimit <= 0 {
-		opts.CandidateLimit = 40 //nolint:mnd
+		opts.CandidateLimit = 40
 	}
 
 	// Steps 1-3: Probe, expand, build ranked lists.
@@ -526,13 +526,14 @@ func rerankChunks(
 	}
 
 	for _, rr := range results {
-		if rr.Index < len(docIDs) {
-			docID := docIDs[rr.Index]
-			scores[docID] = rr.Score
-			bc := bestChunks[docID]
-			cacheKey := rerankCacheKey(query, bc.text)
-			storeLLMCache(d, cacheKey, fmt.Sprintf("%f", rr.Score))
+		if rr.Index >= len(docIDs) {
+			continue
 		}
+		docID := docIDs[rr.Index]
+		scores[docID] = rr.Score
+		bc := bestChunks[docID]
+		cacheKey := rerankCacheKey(query, bc.text)
+		storeLLMCache(d, cacheKey, fmt.Sprintf("%f", rr.Score))
 	}
 
 	return scores, nil

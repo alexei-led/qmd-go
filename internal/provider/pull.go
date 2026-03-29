@@ -24,8 +24,8 @@ func CheckModel(configModel string) ModelStatus {
 
 // PullModel checks the model and returns guidance if not found.
 // Local models must be manually placed; remote providers need no local model.
-func PullModel(configModel string, providerType string) (ModelStatus, error) {
-	if providerType != "" && providerType != "local" {
+func PullModel(configModel, providerType string) (ModelStatus, error) {
+	if providerType != "" && providerType != ProviderLocal {
 		return ModelStatus{}, fmt.Errorf("remote provider %q does not require a local model", providerType)
 	}
 

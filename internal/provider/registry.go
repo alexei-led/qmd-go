@@ -7,6 +7,14 @@ import (
 	"github.com/user/qmd-go/internal/config"
 )
 
+// Provider type constants.
+const (
+	ProviderLocal  = "local"
+	ProviderCohere = "cohere"
+	ProviderVoyage = "voyage"
+	ProviderGemini = "gemini"
+)
+
 // Default provider URLs.
 const (
 	defaultOpenAIURL = "https://api.openai.com"
@@ -31,9 +39,9 @@ func NewEmbedder(cfg *config.ProviderConfig) (Embedder, error) {
 	}
 
 	switch cfg.Type {
-	case "local":
+	case ProviderLocal:
 		return NewLocalEmbedder(ResolveModelPath(cfg.Model)), nil
-	case "openai", "cohere", "gemini":
+	case "openai", ProviderCohere, ProviderGemini:
 		return NewRemoteEmbedder(cfg.Type, url, apiKey, cfg.Model, nil), nil
 	default:
 		return nil, fmt.Errorf("unknown embed provider type: %q", cfg.Type)
@@ -55,7 +63,7 @@ func NewReranker(cfg *config.ProviderConfig) (Reranker, error) {
 	}
 
 	switch cfg.Type {
-	case "cohere", "jina", "voyage", "tei":
+	case ProviderCohere, "jina", ProviderVoyage, "tei":
 		return NewRemoteReranker(cfg.Type, url, apiKey, cfg.Model, nil), nil
 	default:
 		return nil, fmt.Errorf("unknown rerank provider type: %q", cfg.Type)
@@ -86,8 +94,8 @@ func NewGenerator(cfg *config.ProviderConfig) (Generator, error) {
 
 // resolveEmbedConfig merges config with env var fallbacks.
 func resolveEmbedConfig(cfg *config.ProviderConfig) *config.ProviderConfig {
-	if envType := os.Getenv("QMD_EMBED_PROVIDER"); envType == "local" {
-		return &config.ProviderConfig{Type: "local"}
+	if envType := os.Getenv("QMD_EMBED_PROVIDER"); envType == ProviderLocal {
+		return &config.ProviderConfig{Type: ProviderLocal}
 	}
 	if cfg != nil {
 		return cfg
@@ -108,7 +116,7 @@ func resolveRerankConfig(cfg *config.ProviderConfig) *config.ProviderConfig {
 	}
 	if envURL := os.Getenv("QMD_REMOTE_RERANK_URL"); envURL != "" {
 		return &config.ProviderConfig{
-			Type:      "cohere",
+			Type:      ProviderCohere,
 			URL:       envURL,
 			APIKeyEnv: "QMD_REMOTE_API_KEY",
 		}
@@ -132,9 +140,9 @@ func resolveAPIKey(envName string) string {
 
 func defaultEmbedURL(providerType string) string {
 	switch providerType {
-	case "cohere":
+	case ProviderCohere:
 		return defaultCohereURL
-	case "gemini":
+	case ProviderGemini:
 		return defaultGeminiURL
 	default:
 		return defaultOpenAIURL
@@ -143,11 +151,11 @@ func defaultEmbedURL(providerType string) string {
 
 func defaultRerankURL(providerType string) string {
 	switch providerType {
-	case "cohere":
+	case ProviderCohere:
 		return defaultCohereURL
 	case "jina":
 		return defaultJinaURL
-	case "voyage":
+	case ProviderVoyage:
 		return defaultVoyageURL
 	default:
 		return ""

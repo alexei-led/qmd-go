@@ -6,6 +6,7 @@ import (
 	context "context"
 
 	mock "github.com/stretchr/testify/mock"
+
 	provider "github.com/user/qmd-go/internal/provider"
 )
 

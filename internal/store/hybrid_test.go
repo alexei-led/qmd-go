@@ -128,8 +128,8 @@ func TestIsStrongSignal(t *testing.T) {
 	withIntent := []SearchResult{{Score: 0.90}, {Score: 0.50}}
 	assert.False(t, isStrongSignal(withIntent, "some intent"))
 
-	close := []SearchResult{{Score: 0.90}, {Score: 0.85}}
-	assert.False(t, isStrongSignal(close, ""))
+	closeScores := []SearchResult{{Score: 0.90}, {Score: 0.85}}
+	assert.False(t, isStrongSignal(closeScores, ""))
 
 	low := []SearchResult{{Score: 0.50}, {Score: 0.20}}
 	assert.False(t, isStrongSignal(low, ""))

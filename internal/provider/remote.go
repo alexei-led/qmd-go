@@ -53,9 +53,9 @@ func (e *RemoteEmbedder) Embed(ctx context.Context, texts []string, opts EmbedOp
 	)
 
 	switch e.providerType {
-	case "cohere":
+	case ProviderCohere:
 		embeddings, err = e.embedCohere(ctx, normalized, model, opts.IsQuery)
-	case "gemini":
+	case ProviderGemini:
 		embeddings, err = e.embedGemini(ctx, normalized, model, opts.IsQuery)
 	default:
 		embeddings, err = e.embedOpenAI(ctx, normalized, model)

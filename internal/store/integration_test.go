@@ -200,6 +200,7 @@ func TestHybridQuery_NoExpansion_StrongSignal(t *testing.T) {
 	d := setupTestDB(t)
 
 	// Seed a second doc to make FTS return >1 results with score gap.
+	//nolint:dupword
 	_, err := d.Exec(`INSERT INTO content (hash, doc, created_at)
 		VALUES ('ghi789', '# Quantum Physics Deep Dive
 Quantum quantum quantum mechanics is wonderful.

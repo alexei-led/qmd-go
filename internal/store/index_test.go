@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/user/qmd-go/internal/db"
 	"github.com/user/qmd-go/internal/store"
 )
@@ -24,7 +25,7 @@ func openTestDB(t *testing.T) *sql.DB {
 
 func TestScanFiles(t *testing.T) {
 	dir := t.TempDir()
-	require.NoError(t, os.MkdirAll(filepath.Join(dir, "sub"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "sub"), 0o750))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "a.md"), []byte("# A"), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "b.txt"), []byte("B"), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "sub", "c.md"), []byte("# C"), 0o644))
@@ -36,7 +37,7 @@ func TestScanFiles(t *testing.T) {
 
 func TestScanFiles_IgnorePatterns(t *testing.T) {
 	dir := t.TempDir()
-	require.NoError(t, os.MkdirAll(filepath.Join(dir, "vendor"), 0o755))
+	require.NoError(t, os.MkdirAll(filepath.Join(dir, "vendor"), 0o750))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "a.md"), []byte("A"), 0o644))
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "vendor", "b.md"), []byte("B"), 0o644))
 
