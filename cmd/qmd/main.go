@@ -201,6 +201,9 @@ func vsearchAction(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("embed query: %w", err)
 	}
+	if len(vecs) == 0 {
+		return fmt.Errorf("embedding returned no results")
+	}
 
 	results, err := store.VectorSearch(database, vecs[0], store.VectorSearchOpts{
 		Limit:      c.Int("n"),
@@ -376,7 +379,16 @@ func getAction(c *cli.Context) error {
 	}
 	defer func() { _ = database.Close() }()
 
-	doc, notFound, err := store.FindDocument(database, filename, store.FindDocumentOpts{IncludeBody: true})
+	_, lineSpec := store.ParseLineSpec(filename)
+	fromLine := c.Int("from")
+	if fromLine == 0 && lineSpec > 0 {
+		fromLine = lineSpec
+	}
+	maxLines := c.Int("l")
+
+	needSlice := fromLine > 0 || maxLines > 0
+
+	doc, notFound, err := store.FindDocument(database, filename, store.FindDocumentOpts{IncludeBody: !needSlice})
 	if err != nil {
 		return err
 	}
@@ -386,15 +398,8 @@ func getAction(c *cli.Context) error {
 		return nil
 	}
 
-	_, lineSpec := store.ParseLineSpec(filename)
-	fromLine := c.Int("from")
-	if fromLine == 0 && lineSpec > 0 {
-		fromLine = lineSpec
-	}
-	maxLines := c.Int("l")
-
 	body := doc.Body
-	if fromLine > 0 || maxLines > 0 {
+	if needSlice {
 		body, err = store.GetDocumentBody(database, doc.Filepath, fromLine, maxLines)
 		if err != nil {
 			return err

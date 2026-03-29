@@ -158,14 +158,14 @@ func buildRankedLists(
 		sourceLabels = append(sourceLabels, fmt.Sprintf("fts:%s", q))
 	}
 
-	vecLists, vecLabels := buildVecLists(ctx, embedder, d, allVec, opts)
+	vecLists, vecLabels := buildVecLists(ctx, embedder, d, allVec, opts, len(lists))
 	lists = append(lists, vecLists...)
 	sourceLabels = append(sourceLabels, vecLabels...)
 
 	return lists, sourceLabels, nil
 }
 
-func buildVecLists(ctx context.Context, embedder provider.Embedder, d *sql.DB, allVec []string, opts HybridOpts) ([]rankedList, []string) {
+func buildVecLists(ctx context.Context, embedder provider.Embedder, d *sql.DB, allVec []string, opts HybridOpts, ftsListCount int) ([]rankedList, []string) {
 	if embedder == nil || len(allVec) == 0 {
 		return nil, nil
 	}
@@ -186,7 +186,7 @@ func buildVecLists(ctx context.Context, embedder provider.Embedder, d *sql.DB, a
 			continue
 		}
 		weight := 1.0
-		if i < 2 { //nolint:mnd
+		if ftsListCount+i < 2 { //nolint:mnd
 			weight = 2.0
 		}
 		lists = append(lists, rankedList{docIDs: resultDocIDs(results), weight: weight})

@@ -18,7 +18,7 @@ type RemoteEmbedder struct {
 	model        string
 	providerType string // "openai", "cohere", "gemini"
 	dims         int
-	dimsMu       sync.Mutex
+	dimsMu       sync.RWMutex
 }
 
 // NewRemoteEmbedder creates a remote embedder for the given provider type.
@@ -66,12 +66,19 @@ func (e *RemoteEmbedder) Embed(ctx context.Context, texts []string, opts EmbedOp
 
 	if len(embeddings) > 0 {
 		dim := len(embeddings[0])
-		e.dimsMu.Lock()
-		defer e.dimsMu.Unlock()
-		if e.dims == 0 {
-			e.dims = dim
-		} else if e.dims != dim {
-			return nil, fmt.Errorf("dimension mismatch: expected %d, got %d", e.dims, dim)
+		e.dimsMu.RLock()
+		current := e.dims
+		e.dimsMu.RUnlock()
+		if current == 0 {
+			e.dimsMu.Lock()
+			if e.dims == 0 {
+				e.dims = dim
+			}
+			current = e.dims
+			e.dimsMu.Unlock()
+		}
+		if current != dim {
+			return nil, fmt.Errorf("dimension mismatch: expected %d, got %d", current, dim)
 		}
 	}
 
