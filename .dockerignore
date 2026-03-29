@@ -1,0 +1,7 @@
+dist/
+qmd
+.git/
+docs/
+*.md
+!go.mod
+!go.sum

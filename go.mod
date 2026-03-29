@@ -5,6 +5,8 @@ go 1.26.1
 require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/failsafe-go/failsafe-go v0.9.6
+	github.com/kelindar/search v0.4.1
+	github.com/mark3labs/mcp-go v0.46.0
 	github.com/ncruces/go-sqlite3 v0.33.1
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
@@ -16,14 +18,16 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ebitengine/purego v0.8.1 // indirect
+	github.com/google/jsonschema-go v0.4.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/kelindar/iostream v1.4.0 // indirect
-	github.com/kelindar/search v0.4.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/ncruces/go-sqlite3-wasm v1.0.3-0.20260328094950-9a3c1e23fa90 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/spf13/cast v1.7.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
+	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 )
