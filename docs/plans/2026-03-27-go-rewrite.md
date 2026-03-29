@@ -943,13 +943,13 @@ Port: `src/mcp/server.ts` (807 lines)
 
 New — OpenClaw sidecar + plugin
 
-- [ ] 11a: `--openclaw` flag on `qmd mcp --http` — auto-discovers workspace memory files
-- [ ] 11b: Memory collection auto-setup: index `~/.openclaw/workspace/memory/**/*.md` + `MEMORY.md`
-- [ ] 11c: memory_search handler with MMR diversity (lambda 0.7) and temporal decay (30-day half-life)
-- [ ] 11d: memory_get handler (return empty text for missing files, not error)
-- [ ] 11e: Configurable hybrid weights (vectorWeight/textWeight), maxResults, candidateMultiplier
-- [ ] 11f: Thin TS plugin wrapper: package.json, openclaw.plugin.json, index.ts
-- [ ] 11g: Tests: sidecar endpoints, MMR diversity, temporal decay scoring
+- [x] 11a: `--openclaw` flag on `qmd mcp --http` — auto-discovers workspace memory files
+- [x] 11b: Memory collection auto-setup: index `~/.openclaw/workspace/memory/**/*.md` + `MEMORY.md`
+- [x] 11c: memory_search handler with MMR diversity (lambda 0.7) and temporal decay (30-day half-life)
+- [x] 11d: memory_get handler (return empty text for missing files, not error)
+- [x] 11e: Configurable hybrid weights (vectorWeight/textWeight), maxResults, candidateMultiplier
+- [x] 11f: Thin TS plugin wrapper: package.json, openclaw.plugin.json, index.ts
+- [x] 11g: Tests: sidecar endpoints, MMR diversity, temporal decay scoring
 
 **Accept:** OpenClaw memory_search works with qmd-go sidecar. Plugin installable via `openclaw plugins install`.
 

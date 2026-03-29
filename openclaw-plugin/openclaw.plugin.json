@@ -1,0 +1,27 @@
+{
+  "name": "@qmd/openclaw-plugin",
+  "version": "0.1.0",
+  "description": "Semantic search over memory files via QMD sidecar",
+  "tools": [
+    {
+      "name": "memory_search",
+      "description": "Semantic search over workspace memory files",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query text"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum results (default 8)"
+          }
+        },
+        "required": [
+          "query"
+        ]
+      }
+    }
+  ]
+}

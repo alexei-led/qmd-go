@@ -1,0 +1,12 @@
+{
+  "name": "@qmd/openclaw-plugin",
+  "version": "0.1.0",
+  "description": "OpenClaw plugin for QMD memory search",
+  "main": "index.ts",
+  "keywords": [
+    "openclaw",
+    "qmd",
+    "memory-search"
+  ],
+  "license": "MIT"
+}

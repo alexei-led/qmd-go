@@ -13,6 +13,7 @@ import (
 	"github.com/user/qmd-go/internal/config"
 	dbpkg "github.com/user/qmd-go/internal/db"
 	"github.com/user/qmd-go/internal/format"
+	mcppkg "github.com/user/qmd-go/internal/mcp"
 	"github.com/user/qmd-go/internal/provider"
 	"github.com/user/qmd-go/internal/store"
 )
@@ -954,9 +955,48 @@ func mcpCmd() *cli.Command {
 			&cli.BoolFlag{Name: "daemon", Usage: "run as background daemon"},
 			&cli.BoolFlag{Name: "openclaw", Usage: "enable OpenClaw sidecar mode"},
 		},
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
+		Subcommands: []*cli.Command{
+			{
+				Name:  "stop",
+				Usage: "Stop a running MCP daemon",
+				Action: func(c *cli.Context) error {
+					return mcppkg.StopDaemon(c.String("index"))
+				},
+			},
 		},
+		Action: func(c *cli.Context) error {
+			cfg, _, database, err := openIndex(c)
+			if err != nil {
+				return err
+			}
+			defer func() { _ = database.Close() }()
+
+			opts := mcpServerOpts(c, cfg, database)
+			port := c.Int("port")
+
+			switch {
+			case c.Bool("daemon"):
+				return mcppkg.ServeDaemon(opts, port)
+			case c.Bool("http"):
+				return mcppkg.ServeHTTP(opts, port)
+			default:
+				return mcppkg.ServeStdio(opts)
+			}
+		},
+	}
+}
+
+func mcpServerOpts(c *cli.Context, cfg *config.Config, database *sql.DB) mcppkg.ServerOpts {
+	embedder, reranker, _ := initQueryProviders(c, cfg)
+	cfgPath, _ := config.ResolvePaths(c.String("index"))
+	return mcppkg.ServerOpts{
+		DB:        database,
+		Config:    cfg,
+		IndexName: c.String("index"),
+		CfgPath:   cfgPath.ConfigFile,
+		Embedder:  embedder,
+		Reranker:  reranker,
+		OpenClaw:  c.Bool("openclaw"),
 	}
 }
 
