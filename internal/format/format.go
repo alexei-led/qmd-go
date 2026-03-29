@@ -158,6 +158,76 @@ func formatDefault(results []store.SearchResult, opts Opts) string {
 	return b.String()
 }
 
+// MultiGetResults formats multi-get results in the requested format.
+func MultiGetResults(results []store.MultiGetResult, f Format) string {
+	switch f {
+	case JSON:
+		data, err := json.MarshalIndent(results, "", "  ")
+		if err != nil {
+			return fmt.Sprintf(`{"error": %q}`, err.Error())
+		}
+		return string(data) + "\n"
+	case Files:
+		var b strings.Builder
+		for _, r := range results {
+			fmt.Fprintln(&b, r.Filepath)
+		}
+		return b.String()
+	default:
+		return multiGetDefault(results)
+	}
+}
+
+func multiGetDefault(results []store.MultiGetResult) string {
+	var b strings.Builder
+	for i, r := range results {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		if r.Skipped {
+			_, _ = fmt.Fprintf(&b, "--- %s (skipped: %s) ---\n", r.Filepath, r.SkipReason)
+			continue
+		}
+		if r.Doc == nil {
+			continue
+		}
+		_, _ = fmt.Fprintf(&b, "--- %s #%s ---\n", r.Doc.DisplayPath, r.Doc.DocID)
+		if r.Doc.Body != "" {
+			b.WriteString(r.Doc.Body)
+			if !strings.HasSuffix(r.Doc.Body, "\n") {
+				b.WriteString("\n")
+			}
+		}
+	}
+	return b.String()
+}
+
+// LsResults formats ls entries in the requested format.
+func LsResults(entries []store.LsEntry, f Format) string {
+	switch f {
+	case JSON:
+		data, err := json.MarshalIndent(entries, "", "  ")
+		if err != nil {
+			return fmt.Sprintf(`{"error": %q}`, err.Error())
+		}
+		return string(data) + "\n"
+	default:
+		return lsDefault(entries)
+	}
+}
+
+func lsDefault(entries []store.LsEntry) string {
+	var b strings.Builder
+	for _, e := range entries {
+		if e.IsCollection {
+			_, _ = fmt.Fprintf(&b, "%s  (%d files)\n", Cyan(e.Path), e.FileCount)
+		} else {
+			_, _ = fmt.Fprintf(&b, "%s  %s  %dB\n", e.Path, Dim(e.ModifiedAt), e.Size)
+		}
+	}
+	return b.String()
+}
+
 func snippetOrBody(r store.SearchResult) string {
 	if r.Body != "" {
 		return r.Body

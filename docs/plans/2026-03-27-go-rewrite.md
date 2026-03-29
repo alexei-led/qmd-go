@@ -907,14 +907,14 @@ Port: `src/store.ts:2970-4389`
 
 Port: `src/store.ts:3173-3461, 2143-2258`
 
-- [ ] 9a: Document lookup: virtual path, docid (#abc123), absolute path
-- [ ] 9b: Document body retrieval with line range slicing (1-indexed)
-- [ ] 9c: Multi-get: glob patterns, comma-separated, max-bytes threshold
-- [ ] 9d: File listing (ls command)
-- [ ] 9e: Fuzzy matching: Levenshtein, findSimilarFiles, matchFilesByGlob
-- [ ] 9f: Docid utilities: normalize, validate, lookup
-- [ ] 9g: CLI commands: `qmd get`, `qmd multi-get`, `qmd ls`
-- [ ] 9h: Tests: docid resolution, fuzzy matching, multi-get patterns
+- [x] 9a: Document lookup: virtual path, docid (#abc123), absolute path
+- [x] 9b: Document body retrieval with line range slicing (1-indexed)
+- [x] 9c: Multi-get: glob patterns, comma-separated, max-bytes threshold
+- [x] 9d: File listing (ls command)
+- [x] 9e: Fuzzy matching: Levenshtein, findSimilarFiles, matchFilesByGlob
+- [x] 9f: Docid utilities: normalize, validate, lookup
+- [x] 9g: CLI commands: `qmd get`, `qmd multi-get`, `qmd ls`
+- [x] 9h: Tests: docid resolution, fuzzy matching, multi-get patterns
 
 **Accept:** All retrieval commands produce identical output to TS.
 

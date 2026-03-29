@@ -326,10 +326,61 @@ func getCmd() *cli.Command {
 			&cli.IntFlag{Name: "l", Aliases: []string{"lines"}, Usage: "max lines to return", Value: defaultMaxLines},
 			&cli.BoolFlag{Name: "line-numbers", Usage: "show line numbers"},
 		},
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action: getAction,
 	}
+}
+
+func getAction(c *cli.Context) error {
+	if c.NArg() < 1 {
+		return fmt.Errorf("usage: qmd get <file[:line]>")
+	}
+	filename := c.Args().First()
+
+	_, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	doc, notFound, err := store.FindDocument(database, filename, store.FindDocumentOpts{IncludeBody: true})
+	if err != nil {
+		return err
+	}
+	if notFound != nil {
+		data, _ := json.MarshalIndent(notFound, "", "  ")
+		fmt.Println(string(data))
+		return nil
+	}
+
+	_, lineSpec := store.ParseLineSpec(filename)
+	fromLine := c.Int("from")
+	if fromLine == 0 && lineSpec > 0 {
+		fromLine = lineSpec
+	}
+	maxLines := c.Int("l")
+
+	body := doc.Body
+	if fromLine > 0 || maxLines > 0 {
+		body, err = store.GetDocumentBody(database, doc.Filepath, fromLine, maxLines)
+		if err != nil {
+			return err
+		}
+	}
+
+	if c.Bool("line-numbers") {
+		startLine := 1
+		if fromLine > 0 {
+			startLine = fromLine
+		}
+		body = store.AddLineNumbers(body, startLine)
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "--- %s #%s ---\n", doc.DisplayPath, doc.DocID)
+	fmt.Print(body)
+	if body != "" && !strings.HasSuffix(body, "\n") {
+		fmt.Println()
+	}
+	return nil
 }
 
 func multiGetCmd() *cli.Command {
@@ -346,10 +397,35 @@ func multiGetCmd() *cli.Command {
 			&cli.BoolFlag{Name: "xml", Usage: "XML output"},
 			&cli.BoolFlag{Name: "files", Usage: "file paths only"},
 		},
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action: multiGetAction,
 	}
+}
+
+func multiGetAction(c *cli.Context) error {
+	if c.NArg() < 1 {
+		return fmt.Errorf("usage: qmd multi-get <pattern>")
+	}
+	pattern := c.Args().First()
+
+	_, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	results, errs, err := store.FindDocuments(database, pattern, c.Int("max-bytes"))
+	if err != nil {
+		return err
+	}
+
+	for _, e := range errs {
+		_, _ = fmt.Fprintf(os.Stderr, "warning: %s\n", e)
+	}
+
+	f := resolveFormat(c)
+	out := format.MultiGetResults(results, f)
+	fmt.Print(out)
+	return nil
 }
 
 func lsCmd() *cli.Command {
@@ -357,10 +433,37 @@ func lsCmd() *cli.Command {
 		Name:      "ls",
 		Usage:     "List indexed documents",
 		ArgsUsage: "[path]",
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "json", Usage: "JSON output"},
 		},
+		Action: lsAction,
 	}
+}
+
+func lsAction(c *cli.Context) error {
+	path := ""
+	if c.NArg() > 0 {
+		path = c.Args().First()
+	}
+
+	_, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	entries, err := store.ListDocuments(database, path)
+	if err != nil {
+		return err
+	}
+
+	f := format.Default
+	if c.Bool("json") {
+		f = format.JSON
+	}
+	out := format.LsResults(entries, f)
+	fmt.Print(out)
+	return nil
 }
 
 func updateCmd() *cli.Command {
