@@ -143,7 +143,11 @@ func InsertVectors(d *sql.DB, hash, model string, chunks []Chunk, embeddings [][
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	metaStmt, err := tx.Prepare(`INSERT OR REPLACE INTO content_vectors (hash, seq, pos, model, embedded_at) VALUES (?, ?, ?, ?, ?)`)
+	if _, err := tx.Exec(`DELETE FROM content_vectors WHERE hash = ?`, hash); err != nil {
+		return fmt.Errorf("delete stale content_vectors: %w", err)
+	}
+
+	metaStmt, err := tx.Prepare(`INSERT INTO content_vectors (hash, seq, pos, model, embedded_at) VALUES (?, ?, ?, ?, ?)`)
 	if err != nil {
 		return fmt.Errorf("prepare content_vectors: %w", err)
 	}
@@ -152,7 +156,10 @@ func InsertVectors(d *sql.DB, hash, model string, chunks []Chunk, embeddings [][
 	vecAvail := db.VecAvailable(d)
 	var vecStmt *sql.Stmt
 	if vecAvail {
-		vecStmt, err = tx.Prepare(`INSERT OR REPLACE INTO vectors_vec (hash, seq, embedding) VALUES (?, ?, ?)`)
+		if _, err := tx.Exec(`DELETE FROM vectors_vec WHERE hash = ?`, hash); err != nil {
+			return fmt.Errorf("delete stale vectors_vec: %w", err)
+		}
+		vecStmt, err = tx.Prepare(`INSERT INTO vectors_vec (hash, seq, embedding) VALUES (?, ?, ?)`)
 		if err != nil {
 			return fmt.Errorf("prepare vectors_vec: %w", err)
 		}

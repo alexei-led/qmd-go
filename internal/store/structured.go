@@ -43,7 +43,7 @@ func StructuredSearch(
 		return nil, nil
 	}
 
-	opts := HybridOpts{Limit: limit, MinScore: req.MinScore, Intent: req.Intent}
+	opts := HybridOpts{Limit: limit, MinScore: req.MinScore, Intent: req.Intent, Explain: req.Explain}
 	scored, contentMap, docResults, err := scoreDocuments(ctx, d, primaryQuery, reranker, fused, lists, sourceLabels, opts)
 	if err != nil {
 		return nil, err

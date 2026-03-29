@@ -54,4 +54,5 @@ type StructuredSearchRequest struct {
 	CandidateLimit int           `json:"candidateLimit,omitempty"`
 	Collections    []string      `json:"collections,omitempty"`
 	Intent         string        `json:"intent,omitempty"`
+	Explain        bool          `json:"explain,omitempty"`
 }

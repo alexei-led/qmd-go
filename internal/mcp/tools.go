@@ -121,7 +121,14 @@ func getHandler(d *deps) func(context.Context, mcp.CallToolRequest) (*mcp.CallTo
 		if err != nil {
 			return mcp.NewToolResultError("file parameter is required"), nil
 		}
+		parsedFile, parsedLine := store.ParseLineSpec(file)
+		if parsedLine > 0 {
+			file = parsedFile
+		}
 		fromLine := req.GetInt("fromLine", 1)
+		if parsedLine > 0 && fromLine == 1 {
+			fromLine = parsedLine
+		}
 		maxLines := req.GetInt("maxLines", defaultMaxLines)
 		lineNumbers := req.GetBool("lineNumbers", false)
 
@@ -159,7 +166,7 @@ func multiGetTool() mcp.Tool {
 	return mcp.NewTool("multi_get",
 		mcp.WithDescription("Get multiple documents by glob pattern or comma-separated paths"),
 		mcp.WithString("pattern", mcp.Required(), mcp.Description("Glob pattern or comma-separated file paths")),
-		mcp.WithNumber("maxLines", mcp.Description("Max lines per document"), mcp.DefaultNumber(defaultMaxLines)),
+		mcp.WithNumber("maxLines", mcp.Description("Maximum lines per document (0=unlimited)"), mcp.DefaultNumber(defaultMaxLines)),
 		mcp.WithNumber("maxBytes", mcp.Description("Max total bytes"), mcp.DefaultNumber(defaultMaxBytes)),
 		mcp.WithBoolean("lineNumbers", mcp.Description("Include line numbers"), mcp.DefaultBool(false)),
 	)
@@ -171,11 +178,28 @@ func multiGetHandler(d *deps) func(context.Context, mcp.CallToolRequest) (*mcp.C
 		if err != nil {
 			return mcp.NewToolResultError("pattern parameter is required"), nil
 		}
+		maxLines := req.GetInt("maxLines", defaultMaxLines)
 		maxBytes := req.GetInt("maxBytes", defaultMaxBytes)
+		lineNumbers := req.GetBool("lineNumbers", false)
 
 		results, errs, err := store.FindDocuments(d.db, pattern, maxBytes)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("error: %v", err)), nil
+		}
+
+		// Apply maxLines and lineNumbers to each result's body.
+		for i := range results {
+			if results[i].Doc == nil {
+				continue
+			}
+			body := results[i].Doc.Body
+			if maxLines > 0 {
+				body = store.TruncateLines(body, maxLines)
+			}
+			if lineNumbers {
+				body = store.AddLineNumbers(body, 1)
+			}
+			results[i].Doc.Body = body
 		}
 
 		out := map[string]any{
@@ -231,7 +255,7 @@ func getStatusInfo(db *sql.DB, cfg *config.Config) (*store.StatusInfo, error) {
 	row = db.QueryRow("SELECT COUNT(*) FROM documents WHERE active = 1")
 	_ = row.Scan(&info.ActiveDocuments)
 
-	row = db.QueryRow("SELECT COUNT(*) FROM content_vectors WHERE embedded_at != 'embedding...'")
+	row = db.QueryRow("SELECT COUNT(*) FROM content_vectors WHERE model != 'claiming'")
 	_ = row.Scan(&info.EmbeddedChunks)
 
 	if cfg.Providers != nil && cfg.Providers.Embed != nil {

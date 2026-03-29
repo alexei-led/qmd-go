@@ -278,6 +278,11 @@ func GetDocumentBody(d *sql.DB, filepath string, fromLine, maxLines int) (string
 	return sliceLines(body, fromLine, maxLines), nil
 }
 
+// TruncateLines returns the first maxLines lines of body.
+func TruncateLines(body string, maxLines int) string {
+	return sliceLines(body, 0, maxLines)
+}
+
 func sliceLines(body string, fromLine, maxLines int) string {
 	if fromLine <= 0 && maxLines <= 0 {
 		return body

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -106,6 +107,7 @@ func memorySearchHandler(
 			Limit:          candidateLimit,
 			CandidateLimit: candidateLimit,
 			Collections:    []string{MemoryCollectionName},
+			Explain:        true,
 		}
 
 		results, err := store.StructuredSearch(ctx, db, ssReq, embedder, reranker)
@@ -117,25 +119,28 @@ func memorySearchHandler(
 		scored = applyTemporalDecay(db, scored, cfg.TemporalHalfLife)
 		selected := applyMMR(scored, cfg.MMRLambda, limit)
 
-		out := make([]MemorySearchResult, 0, len(selected))
-		for _, s := range selected {
-			snippet := s.Snippet
-			if len([]rune(snippet)) > MaxSnippetChars {
-				snippet = string([]rune(snippet)[:MaxSnippetChars])
-			}
-			out = append(out, MemorySearchResult{
-				Path:      s.Path,
-				Title:     s.Title,
-				Snippet:   snippet,
-				Score:     s.Score,
-				LineStart: s.LineStart,
-				LineEnd:   s.LineEnd,
-			})
-		}
-
-		data, _ := json.Marshal(out)
+		data, _ := json.Marshal(buildMemoryResults(selected))
 		return mcp.NewToolResultText(string(data)), nil
 	}
+}
+
+func buildMemoryResults(selected []scoredResult) []MemorySearchResult {
+	out := make([]MemorySearchResult, 0, len(selected))
+	for _, s := range selected {
+		snippet := s.Snippet
+		if len([]rune(snippet)) > MaxSnippetChars {
+			snippet = string([]rune(snippet)[:MaxSnippetChars])
+		}
+		out = append(out, MemorySearchResult{
+			Path:      s.Path,
+			Title:     s.Title,
+			Snippet:   snippet,
+			Score:     s.adjustedScore,
+			LineStart: s.LineStart,
+			LineEnd:   s.LineEnd,
+		})
+	}
+	return out
 }
 
 // memoryGetTool returns the MCP tool definition for memory_get.
@@ -154,11 +159,17 @@ func memoryGetHandler(db *sql.DB) func(context.Context, mcp.CallToolRequest) (*m
 			return mcp.NewToolResultError("path parameter is required"), nil
 		}
 
-		doc, notFound, err := store.FindDocument(db, path, store.FindDocumentOpts{IncludeBody: false})
+		// Scope lookup to memory collection via qmd:// prefix to avoid
+		// cross-collection suffix matches in FindDocument.
+		qualifiedPath := path
+		if !strings.HasPrefix(path, "qmd://") {
+			qualifiedPath = "qmd://" + MemoryCollectionName + "/" + path
+		}
+		doc, notFound, err := store.FindDocument(db, qualifiedPath, store.FindDocumentOpts{IncludeBody: false})
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("error: %v", err)), nil
 		}
-		if notFound != nil {
+		if notFound != nil || (doc != nil && doc.CollectionName != MemoryCollectionName) {
 			// Return empty text for missing files, not error.
 			result := map[string]any{"path": path, "body": "", "found": false}
 			data, _ := json.Marshal(result)
@@ -207,10 +218,15 @@ func applyWeightedScoring(results []store.HybridResult, vecWeight, txtWeight flo
 	blended := make([]scoredResult, len(results))
 	for i, r := range results {
 		var weight float64
-		if r.Explain != nil && r.Explain.RerankScore > 0 {
-			weight = normVec
+		if r.Explain != nil && hasSource(r.Explain.Sources, "vec") {
+			if hasSource(r.Explain.Sources, "lex") {
+				// Appeared in both vec and lex results — blend weights.
+				weight = normVec*similarityBlend + normTxt*(1-similarityBlend)
+			} else {
+				weight = normVec
+			}
 		} else {
-			weight = normTxt + (normVec-normTxt)*similarityBlend
+			weight = normTxt
 		}
 		blended[i] = scoredResult{
 			HybridResult:  r,
@@ -313,6 +329,15 @@ func pathSimilarity(a, b string) float64 {
 	return float64(shared) / float64(total)
 }
 
+func hasSource(sources []string, prefix string) bool {
+	for _, s := range sources {
+		if strings.HasPrefix(s, prefix+":") || s == prefix {
+			return true
+		}
+	}
+	return false
+}
+
 func splitPath(p string) []string {
 	var parts []string
 	start := 0
@@ -329,7 +354,7 @@ func splitPath(p string) []string {
 
 func getDocModifiedAt(db *sql.DB, path string) time.Time {
 	var modAt string
-	err := db.QueryRow(`SELECT modified_at FROM documents WHERE path = ? AND active = 1`, path).Scan(&modAt)
+	err := db.QueryRow(`SELECT modified_at FROM documents WHERE path = ? AND collection = ? AND active = 1`, path, MemoryCollectionName).Scan(&modAt)
 	if err != nil {
 		return time.Time{}
 	}

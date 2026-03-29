@@ -28,12 +28,12 @@ func GetStatus(d *sql.DB, indexName, dbPath string) (StatusInfo, error) {
 	if err := d.QueryRow(`SELECT COUNT(*) FROM documents WHERE active = 1`).Scan(&info.ActiveDocuments); err != nil {
 		return info, fmt.Errorf("count active documents: %w", err)
 	}
-	if err := d.QueryRow(`SELECT COUNT(*) FROM content_vectors`).Scan(&info.EmbeddedChunks); err != nil {
+	if err := d.QueryRow(`SELECT COUNT(*) FROM content_vectors WHERE model != 'claiming'`).Scan(&info.EmbeddedChunks); err != nil {
 		return info, fmt.Errorf("count vectors: %w", err)
 	}
 
 	var model sql.NullString
-	_ = d.QueryRow(`SELECT model FROM content_vectors LIMIT 1`).Scan(&model)
+	_ = d.QueryRow(`SELECT model FROM content_vectors WHERE model != 'claiming' LIMIT 1`).Scan(&model)
 	if model.Valid {
 		info.EmbedModel = model.String
 	}
