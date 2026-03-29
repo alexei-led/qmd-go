@@ -400,8 +400,9 @@ func ListDocuments(d *sql.DB, path string) ([]LsEntry, error) {
 	args := []any{collection}
 
 	if subPath != "" {
-		q += ` AND d.path LIKE ?`
-		args = append(args, subPath+"%")
+		escaped := strings.NewReplacer("%", `\%`, "_", `\_`).Replace(subPath)
+		q += ` AND d.path LIKE ? ESCAPE '\'`
+		args = append(args, escaped+"%")
 	}
 	q += ` ORDER BY d.path`
 

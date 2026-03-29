@@ -86,6 +86,7 @@ func (rc *ResilientClient) Do(ctx context.Context, build func() (*http.Request, 
 			if err != nil {
 				return nil, fmt.Errorf("build request: %w", err)
 			}
+			req = req.WithContext(ctx)
 
 			resp, err := rc.client.Do(req)
 			if err != nil {
