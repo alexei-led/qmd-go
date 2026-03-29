@@ -116,17 +116,18 @@ func BuildFTS5Query(input string) *string {
 
 	var positive, negative []string
 	for _, t := range tokens {
+		escaped := strings.ReplaceAll(t.text, `"`, `""`)
 		if t.negated {
 			if t.phrase {
-				negative = append(negative, `"`+t.text+`"`)
+				negative = append(negative, `"`+escaped+`"`)
 			} else {
-				negative = append(negative, `"`+t.text+`"*`)
+				negative = append(negative, `"`+escaped+`"*`)
 			}
 		} else {
 			if t.phrase {
-				positive = append(positive, `"`+t.text+`"`)
+				positive = append(positive, `"`+escaped+`"`)
 			} else {
-				positive = append(positive, `"`+t.text+`"*`)
+				positive = append(positive, `"`+escaped+`"*`)
 			}
 		}
 	}

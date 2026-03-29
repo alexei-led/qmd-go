@@ -583,7 +583,11 @@ func embedAction(c *cli.Context) error {
 	}
 	defer func() { _ = database.Close() }()
 
-	embedder, err := provider.NewEmbedder(embedCfg(cfg))
+	ecfg := embedCfg(cfg)
+	if m := c.String("model"); m != "" && ecfg != nil {
+		ecfg.Model = m
+	}
+	embedder, err := provider.NewEmbedder(ecfg)
 	if err != nil {
 		return fmt.Errorf("create embedder: %w", err)
 	}
@@ -1124,6 +1128,14 @@ func mcpCmd() *cli.Command {
 			{
 				Name:  "stop",
 				Usage: "Stop a running MCP daemon",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "index",
+						Usage:   "index name",
+						Value:   "default",
+						EnvVars: []string{"QMD_INDEX"},
+					},
+				},
 				Action: func(c *cli.Context) error {
 					return mcppkg.StopDaemon(c.String("index"))
 				},
@@ -1137,6 +1149,12 @@ func mcpCmd() *cli.Command {
 			defer func() { _ = database.Close() }()
 
 			opts := mcpServerOpts(c, cfg, database)
+			if opts.Embedder != nil {
+				defer func() { _ = opts.Embedder.Close() }()
+			}
+			if opts.Reranker != nil {
+				defer func() { _ = opts.Reranker.Close() }()
+			}
 			port := c.Int("port")
 
 			switch {
