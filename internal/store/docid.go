@@ -180,7 +180,8 @@ func (f *docFinder) resolve(fp string) (*RetrievedDoc, error) {
 		}
 	}
 
-	if doc, err := f.queryOne(`'qmd://' || d.collection || '/' || d.path LIKE ?`, "%"+fp); doc != nil || err != nil {
+	escaped := strings.NewReplacer("%", "\\%", "_", "\\_").Replace(fp)
+	if doc, err := f.queryOne(`'qmd://' || d.collection || '/' || d.path LIKE ? ESCAPE '\'`, "%"+escaped); doc != nil || err != nil {
 		return doc, err
 	}
 
@@ -213,7 +214,7 @@ func (f *docFinder) queryOne(where string, args ...any) (*RetrievedDoc, error) {
 	cols := `'qmd://' || d.collection || '/' || d.path,
 		d.collection || '/' || d.path,
 		d.title, d.hash, d.collection, d.modified_at,
-		LENGTH(content.doc)`
+		LENGTH(CAST(content.doc AS BLOB))`
 	if f.opts.IncludeBody {
 		cols += `, content.doc`
 	}

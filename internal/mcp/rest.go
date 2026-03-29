@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -33,7 +34,8 @@ func searchEndpoint(d *deps) http.HandlerFunc {
 
 		results, err := store.StructuredSearch(r.Context(), d.db, req, d.embedder, d.reranker)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			slog.Error("search failed", "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 			return
 		}
 
@@ -51,7 +53,8 @@ func healthEndpoint(d *deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		info, err := getStatusInfo(d.db, d.cfg)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			slog.Error("health check failed", "error", err)
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal server error"})
 			return
 		}
 
