@@ -44,6 +44,23 @@ func main() {
 				Value:   "default",
 				EnvVars: []string{"QMD_INDEX"},
 			},
+			&cli.StringFlag{
+				Name:    "format",
+				Aliases: []string{"f"},
+				Usage:   "output format: json, csv, xml, md, files",
+				EnvVars: []string{"QMD_FORMAT"},
+			},
+			&cli.BoolFlag{
+				Name:    "no-color",
+				Usage:   "disable colored output",
+				EnvVars: []string{"NO_COLOR", "QMD_NO_COLOR"},
+			},
+		},
+		Before: func(c *cli.Context) error {
+			if c.Bool("no-color") {
+				format.SetColor(false)
+			}
+			return nil
 		},
 		Commands: []*cli.Command{
 			searchCmd(),
@@ -64,7 +81,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s %v\n", format.Yellow("error:"), err)
 		os.Exit(1)
 	}
 }
@@ -117,6 +134,23 @@ func searchAction(c *cli.Context) error {
 }
 
 func resolveFormat(c *cli.Context) format.Format {
+	// Check global --format flag first.
+	if f := c.String("format"); f != "" {
+		switch strings.ToLower(f) {
+		case "json":
+			return format.JSON
+		case "csv":
+			return format.CSV
+		case "xml":
+			return format.XML
+		case "md", "markdown":
+			return format.Markdown
+		case "files":
+			return format.Files
+		}
+	}
+
+	// Fall back to per-command boolean flags.
 	switch {
 	case c.Bool("json"):
 		return format.JSON
@@ -579,20 +613,102 @@ func pullCmd() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "refresh", Usage: "re-download even if present"},
 		},
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action: pullAction,
 	}
+}
+
+func pullAction(c *cli.Context) error {
+	cfg, _, _, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+
+	var configModel, providerType string
+	if cfg.Providers != nil && cfg.Providers.Embed != nil {
+		configModel = cfg.Providers.Embed.Model
+		providerType = cfg.Providers.Embed.Type
+	}
+
+	status, err := provider.PullModel(configModel, providerType)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Model: %s\n", status.Path)
+	const megabyte = 1024 * 1024
+	fmt.Printf("Size:  %.1f MB\n", float64(status.Size)/megabyte)
+	fmt.Println("Model is available.")
+	return nil
 }
 
 func statusCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "status",
 		Usage: "Show index status",
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "json", Usage: "JSON output"},
 		},
+		Action: statusAction,
 	}
+}
+
+func statusAction(c *cli.Context) error {
+	cfg, paths, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	info, err := store.GetStatus(database, c.String("index"), paths.DBFile)
+	if err != nil {
+		return err
+	}
+
+	if c.Bool("json") {
+		data, err := json.MarshalIndent(info, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(data))
+		return nil
+	}
+
+	fmt.Printf("Index:       %s\n", info.IndexName)
+	fmt.Printf("Database:    %s\n", info.DBPath)
+	fmt.Printf("Documents:   %d active / %d total\n", info.ActiveDocuments, info.TotalDocuments)
+	fmt.Printf("Vectors:     %d chunks\n", info.EmbeddedChunks)
+	fmt.Printf("Vec engine:  %s\n", boolStatus(info.VecAvailable))
+	if info.EmbedModel != "" {
+		fmt.Printf("Model:       %s\n", info.EmbedModel)
+	}
+	if info.EmbedDimension > 0 {
+		fmt.Printf("Dimensions:  %d\n", info.EmbedDimension)
+	}
+
+	providerType := "none"
+	if cfg.Providers != nil && cfg.Providers.Embed != nil {
+		providerType = cfg.Providers.Embed.Type
+	}
+	fmt.Printf("Provider:    %s\n", providerType)
+
+	if len(info.Collections) > 0 {
+		fmt.Printf("\nCollections (%d):\n", len(info.Collections))
+		for _, col := range info.Collections {
+			status := "included"
+			if !col.IncludeByDefault {
+				status = "excluded"
+			}
+			fmt.Printf("  %-20s %s (%s)\n", col.Name, col.Path, status)
+		}
+	}
+	return nil
+}
+
+func boolStatus(b bool) string {
+	if b {
+		return "available"
+	}
+	return "unavailable"
 }
 
 func cleanupCmd() *cli.Command {
@@ -605,10 +721,35 @@ func cleanupCmd() *cli.Command {
 			&cli.BoolFlag{Name: "skip-orphaned-vectors", Usage: "skip orphaned vector cleanup"},
 			&cli.BoolFlag{Name: "skip-llm-cache", Usage: "skip LLM cache cleanup"},
 		},
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action: cleanupAction,
 	}
+}
+
+func cleanupAction(c *cli.Context) error {
+	_, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	result, err := store.Cleanup(database, store.CleanupOpts{
+		SkipInactive:        c.Bool("skip-inactive"),
+		SkipOrphanedContent: c.Bool("skip-orphaned-content"),
+		SkipOrphanedVectors: c.Bool("skip-orphaned-vectors"),
+		SkipLLMCache:        c.Bool("skip-llm-cache"),
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Inactive documents removed: %d\n", result.InactiveRemoved)
+	fmt.Printf("Orphaned content removed:   %d\n", result.ContentRemoved)
+	fmt.Printf("Orphaned vectors removed:   %d\n", result.VectorsRemoved)
+	fmt.Printf("LLM cache entries cleared:  %d\n", result.CacheCleared)
+	if result.Vacuumed {
+		fmt.Println("Database vacuumed.")
+	}
+	return nil
 }
 
 // openIndex loads the config, opens the database, and initializes the schema for the given index.

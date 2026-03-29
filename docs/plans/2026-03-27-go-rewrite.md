@@ -957,12 +957,12 @@ New — OpenClaw sidecar + plugin
 
 **Files:** updates across cmd/qmd/main.go and internal/
 
-- [ ] 12a: `qmd status` — index info, collections, embedding coverage, provider status
-- [ ] 12b: `qmd cleanup` — orphan cleanup + vacuum (all skip flags)
-- [ ] 12c: `qmd pull` — download/check models via provider
-- [ ] 12d: Global flags on root command (all output and filtering flags)
-- [ ] 12e: Error handling: consistent messages, colored warnings, exit codes
-- [ ] 12f: Tests: status output, cleanup operations, flag parsing
+- [x] 12a: `qmd status` — index info, collections, embedding coverage, provider status
+- [x] 12b: `qmd cleanup` — orphan cleanup + vacuum (all skip flags)
+- [x] 12c: `qmd pull` — download/check models via provider
+- [x] 12d: Global flags on root command (all output and filtering flags)
+- [x] 12e: Error handling: consistent messages, colored warnings, exit codes
+- [x] 12f: Tests: status output, cleanup operations, flag parsing
 
 **Accept:** Every CLI command matches TS output format.
 
