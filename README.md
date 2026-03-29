@@ -1,5 +1,10 @@
 # QMD (Go)
 
+[![CI](https://github.com/alexei-led/qmd-go/actions/workflows/ci.yml/badge.svg)](https://github.com/alexei-led/qmd-go/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/alexei-led/qmd-go)](https://goreportcard.com/report/github.com/alexei-led/qmd-go)
+[![Release](https://img.shields.io/github/v/release/alexei-led/qmd-go)](https://github.com/alexei-led/qmd-go/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 On-device semantic search for markdown notes. Combines BM25 full-text search, vector similarity, and LLM re-ranking in a single binary.
 
 Go rewrite of [tobi/qmd](https://github.com/tobi/qmd) — same CLI, same database, same config files. Drop-in replacement.
