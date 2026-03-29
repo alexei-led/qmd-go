@@ -156,6 +156,149 @@ func TestMultiGetHandler_NoMatches(t *testing.T) {
 	require.False(t, result.IsError)
 }
 
+func TestQueryHandler_LexSearch(t *testing.T) {
+	d := testDeps(t)
+	seedDoc(t, d.db, "notes", "test.md", "abc123def456", "Test Doc", "hello world content here")
+
+	handler := queryHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"searches": []any{map[string]any{"type": "lex", "query": "hello"}},
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	require.NotEmpty(t, result.Content)
+	text := result.Content[0].(gomcp.TextContent).Text
+	var results []searchResultJSON
+	require.NoError(t, json.Unmarshal([]byte(text), &results))
+	require.NotEmpty(t, results)
+	assert.Equal(t, "notes", results[0].Collection)
+	assert.Greater(t, results[0].Score, 0.0)
+}
+
+func TestQueryHandler_WithLimit(t *testing.T) {
+	d := testDeps(t)
+	seedDoc(t, d.db, "notes", "a.md", "hash_a_123456", "Doc A", "hello world alpha")
+	seedDoc(t, d.db, "notes", "b.md", "hash_b_123456", "Doc B", "hello world beta")
+
+	handler := queryHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"searches": []any{map[string]any{"type": "lex", "query": "hello"}},
+		"limit":    1,
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	require.NotEmpty(t, result.Content)
+	text := result.Content[0].(gomcp.TextContent).Text
+	var results []searchResultJSON
+	require.NoError(t, json.Unmarshal([]byte(text), &results))
+	assert.Len(t, results, 1)
+}
+
+func TestQueryHandler_CollectionFilter(t *testing.T) {
+	d := testDeps(t)
+	seedDoc(t, d.db, "notes", "test.md", "abc123def456", "Test Doc", "hello world content")
+
+	handler := queryHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"searches":    []any{map[string]any{"type": "lex", "query": "hello"}},
+		"collections": []any{"nonexistent"},
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	require.NotEmpty(t, result.Content)
+	text := result.Content[0].(gomcp.TextContent).Text
+	var results []searchResultJSON
+	require.NoError(t, json.Unmarshal([]byte(text), &results))
+	assert.Empty(t, results)
+}
+
+func TestQueryHandler_InvalidType(t *testing.T) {
+	d := testDeps(t)
+
+	handler := queryHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"searches": []any{map[string]any{"type": "invalid", "query": "hello"}},
+	}))
+	require.NoError(t, err)
+	require.True(t, result.IsError)
+}
+
+func TestGetHandler_WithFromLine(t *testing.T) {
+	d := testDeps(t)
+	seedDoc(t, d.db, "notes", "test.md", "abc123def456", "Test Doc", "line one\nline two\nline three")
+
+	handler := getHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"file": "qmd://notes/test.md", "fromLine": 2,
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	require.NotEmpty(t, result.Content)
+	text := result.Content[0].(gomcp.TextContent).Text
+	var doc map[string]any
+	require.NoError(t, json.Unmarshal([]byte(text), &doc))
+	assert.NotContains(t, doc["body"], "line one")
+	assert.Contains(t, doc["body"], "line two")
+}
+
+func TestGetHandler_WithMaxLines(t *testing.T) {
+	d := testDeps(t)
+	seedDoc(t, d.db, "notes", "test.md", "abc123def456", "Test Doc", "line one\nline two\nline three")
+
+	handler := getHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"file": "qmd://notes/test.md", "maxLines": 1,
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	require.NotEmpty(t, result.Content)
+	text := result.Content[0].(gomcp.TextContent).Text
+	var doc map[string]any
+	require.NoError(t, json.Unmarshal([]byte(text), &doc))
+	body := doc["body"].(string)
+	lines := strings.Split(strings.TrimRight(body, "\n"), "\n")
+	assert.Len(t, lines, 1)
+}
+
+func TestMultiGetHandler_GlobMatch(t *testing.T) {
+	d := testDeps(t)
+	seedDoc(t, d.db, "notes", "a.md", "hash_a_123456", "Doc A", "content a")
+	seedDoc(t, d.db, "notes", "b.md", "hash_b_123456", "Doc B", "content b")
+
+	handler := multiGetHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"pattern": "*.md",
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	require.NotEmpty(t, result.Content)
+	text := result.Content[0].(gomcp.TextContent).Text
+	assert.Contains(t, text, "a.md")
+	assert.Contains(t, text, "b.md")
+}
+
+func TestMultiGetHandler_MaxLines(t *testing.T) {
+	d := testDeps(t)
+	seedDoc(t, d.db, "notes", "test.md", "abc123def456", "Test Doc", "line one\nline two\nline three")
+
+	handler := multiGetHandler(d)
+	result, err := handler(context.Background(), callToolReq(map[string]any{
+		"pattern": "*.md", "maxLines": 1,
+	}))
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	require.NotEmpty(t, result.Content)
+	text := result.Content[0].(gomcp.TextContent).Text
+	assert.NotContains(t, text, "line three")
+}
+
 // --- REST endpoint tests ---
 
 func TestHealthEndpoint(t *testing.T) {

@@ -223,3 +223,80 @@ func TestMatchFilesByGlob(t *testing.T) {
 	assert.Len(t, matches, 1)
 	assert.Contains(t, matches[0].Filepath, "readme.md")
 }
+
+func TestFindDocument_PartialPath(t *testing.T) {
+	d := setupTestDB(t)
+	seedDoc(t, d, "notes", "deep/file.md", "aabbcc112233", "Deep File", "deep content")
+
+	tests := []struct {
+		name, query string
+	}{
+		{"filename only", "file.md"},
+		{"partial path", "deep/file.md"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc, notFound, err := store.FindDocument(d, tt.query, store.FindDocumentOpts{})
+			require.NoError(t, err)
+			require.Nil(t, notFound)
+			require.NotNil(t, doc)
+			assert.Contains(t, doc.Filepath, "deep/file.md")
+		})
+	}
+}
+
+func TestFindDocument_WithContext(t *testing.T) {
+	d := setupTestDB(t)
+	seedDoc(t, d, "notes", "ctx.md", "cccccc444444", "Context Doc", "context body")
+
+	_, err := d.Exec(`UPDATE store_collections SET context = ? WHERE name = ?`, "collection context", "notes")
+	require.NoError(t, err)
+
+	doc, notFound, err := store.FindDocument(d, "qmd://notes/ctx.md", store.FindDocumentOpts{IncludeBody: true})
+	require.NoError(t, err)
+	require.Nil(t, notFound)
+	require.NotNil(t, doc)
+	assert.Equal(t, "collection context", doc.Context)
+}
+
+func TestFindDocument_Suggestions(t *testing.T) {
+	d := setupTestDB(t)
+	seedDoc(t, d, "notes", "quantum.md", "aabbcc112233", "Quantum", "quantum content")
+
+	_, notFound, err := store.FindDocument(d, "quatum.md", store.FindDocumentOpts{})
+	require.NoError(t, err)
+	require.NotNil(t, notFound)
+	assert.Equal(t, "not_found", notFound.Error)
+	assert.NotEmpty(t, notFound.SimilarFiles)
+}
+
+func TestParseLineSpec_Extended(t *testing.T) {
+	tests := []struct {
+		input    string
+		wantPath string
+		wantLine int
+	}{
+		{"test.md:5", "test.md", 5},
+		{"path/to/file.md:100", "path/to/file.md", 100},
+		{"no-colon.md", "no-colon.md", 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			path, line := store.ParseLineSpec(tt.input)
+			assert.Equal(t, tt.wantPath, path)
+			assert.Equal(t, tt.wantLine, line)
+		})
+	}
+}
+
+func TestGetDocumentBody_FromLine(t *testing.T) {
+	d := setupTestDB(t)
+	seedDoc(t, d, "notes", "multiline.md", "dddddd555555", "Multi", "line1\nline2\nline3\nline4\nline5")
+
+	body, err := store.GetDocumentBody(d, "qmd://notes/multiline.md", 2, 2)
+	require.NoError(t, err)
+	assert.NotContains(t, body, "line1")
+	assert.Contains(t, body, "line2")
+	assert.Contains(t, body, "line3")
+	assert.NotContains(t, body, "line4")
+}

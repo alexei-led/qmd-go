@@ -174,3 +174,84 @@ func setupEmptyTestDB(t *testing.T) *sql.DB {
 	require.NoError(t, InitializeDatabase(d))
 	return d
 }
+
+func TestSearchFTS_TitleRankedHigher(t *testing.T) {
+	d := setupEmptyTestDB(t)
+	_, err := d.Exec(`INSERT INTO store_collections (name, path, pattern, include_by_default)
+		VALUES ('col', '/tmp', '**/*.md', 1)`)
+	require.NoError(t, err)
+
+	// Both docs have same body content, but only one has "quantum" in title.
+	// FTS5 BM25 with title weight 5.0 vs body weight 2.0 means title match wins.
+	_, err = d.Exec(`INSERT INTO content (hash, doc, created_at)
+		VALUES ('body-only', 'Some notes about advanced quantum topics.', '2024-01-01T00:00:00Z')`)
+	require.NoError(t, err)
+	_, err = d.Exec(`INSERT INTO documents (collection, path, title, hash, created_at, modified_at, active)
+		VALUES ('col', 'body.md', 'Physics Notes', 'body-only', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', 1)`)
+	require.NoError(t, err)
+
+	_, err = d.Exec(`INSERT INTO content (hash, doc, created_at)
+		VALUES ('title-match', 'Some notes about advanced quantum topics.', '2024-01-01T00:00:00Z')`)
+	require.NoError(t, err)
+	_, err = d.Exec(`INSERT INTO documents (collection, path, title, hash, created_at, modified_at, active)
+		VALUES ('col', 'title.md', 'Quantum Guide', 'title-match', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', 1)`)
+	require.NoError(t, err)
+
+	results, err := SearchFTS(d, "quantum", SearchOpts{Limit: 10, SearchAll: true})
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	assert.Equal(t, "title.md", results[0].Path, "title match should rank first")
+	assert.Greater(t, results[0].Score, results[1].Score)
+}
+
+func TestSearchFTS_InactiveExcluded(t *testing.T) {
+	d := setupEmptyTestDB(t)
+	_, err := d.Exec(`INSERT INTO store_collections (name, path, pattern, include_by_default)
+		VALUES ('col', '/tmp', '**/*.md', 1)`)
+	require.NoError(t, err)
+
+	_, err = d.Exec(`INSERT INTO content (hash, doc, created_at)
+		VALUES ('inactive-hash', 'Unique zephyr content only here.', '2024-01-01T00:00:00Z')`)
+	require.NoError(t, err)
+	_, err = d.Exec(`INSERT INTO documents (collection, path, title, hash, created_at, modified_at, active)
+		VALUES ('col', 'inactive.md', 'Inactive Doc', 'inactive-hash', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', 1)`)
+	require.NoError(t, err)
+
+	_, err = d.Exec(`UPDATE documents SET active = 0 WHERE path = 'inactive.md'`)
+	require.NoError(t, err)
+
+	results, err := SearchFTS(d, "zephyr", SearchOpts{Limit: 10, SearchAll: true})
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+func TestSearchFTS_SpecialChars(t *testing.T) {
+	d := setupTestDB(t)
+	results, err := SearchFTS(d, "quantum@#$", SearchOpts{Limit: 10, SearchAll: true})
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "quantum.md", results[0].Path)
+}
+
+func TestSearchFTS_SearchAll(t *testing.T) {
+	d := setupEmptyTestDB(t)
+	_, err := d.Exec(`INSERT INTO store_collections (name, path, pattern, include_by_default)
+		VALUES ('hidden-col', '/tmp', '**/*.md', 0)`)
+	require.NoError(t, err)
+
+	_, err = d.Exec(`INSERT INTO content (hash, doc, created_at)
+		VALUES ('hidden-hash', 'Specialized platypus research document.', '2024-01-01T00:00:00Z')`)
+	require.NoError(t, err)
+	_, err = d.Exec(`INSERT INTO documents (collection, path, title, hash, created_at, modified_at, active)
+		VALUES ('hidden-col', 'hidden.md', 'Hidden Doc', 'hidden-hash', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z', 1)`)
+	require.NoError(t, err)
+
+	results, err := SearchFTS(d, "platypus", SearchOpts{Limit: 10, SearchAll: false})
+	require.NoError(t, err)
+	assert.Empty(t, results)
+
+	results, err = SearchFTS(d, "platypus", SearchOpts{Limit: 10, SearchAll: true})
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "hidden.md", results[0].Path)
+}

@@ -254,3 +254,40 @@ func TestReindexAll(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, paths, 1)
 }
+
+func TestInsertContent_Dedup(t *testing.T) {
+	d := openTestDB(t)
+
+	hash1, err := store.InsertContent(d, "duplicate content")
+	require.NoError(t, err)
+	hash2, err := store.InsertContent(d, "duplicate content")
+	require.NoError(t, err)
+	assert.Equal(t, hash1, hash2)
+
+	var count int
+	err = d.QueryRow(`SELECT COUNT(*) FROM content WHERE hash = ?`, hash1).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+}
+
+func TestDeactivateDocuments_PreservesActive(t *testing.T) {
+	d := openTestDB(t)
+	hash, err := store.InsertContent(d, "shared content")
+	require.NoError(t, err)
+
+	_, err = store.InsertDocument(d, "coll", "a.md", "A", hash)
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "b.md", "B", hash)
+	require.NoError(t, err)
+	_, err = store.InsertDocument(d, "coll", "c.md", "C", hash)
+	require.NoError(t, err)
+
+	n, err := store.DeactivateDocuments(d, "coll", map[string]bool{"a.md": true, "c.md": true})
+	require.NoError(t, err)
+	assert.Equal(t, 1, n)
+
+	var activeB int
+	err = d.QueryRow(`SELECT active FROM documents WHERE path = 'b.md'`).Scan(&activeB)
+	require.NoError(t, err)
+	assert.Equal(t, 0, activeB)
+}

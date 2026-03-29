@@ -129,3 +129,86 @@ func TestColorDisabledByEnv(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatResults_WithContext(t *testing.T) {
+	SetColor(false)
+	results := []store.SearchResult{{
+		Collection: "notes", Path: "ctx.md", Title: "Context Test",
+		Score: 0.95, Snippet: "snippet", Hash: "aaa111", DocID: 1,
+		Context: "This is context info",
+	}}
+
+	t.Run("JSON includes context", func(t *testing.T) {
+		out := Results(results, JSON, Opts{})
+		assert.Contains(t, out, `"context"`)
+		assert.Contains(t, out, "This is context info")
+	})
+
+	t.Run("JSON omits empty context", func(t *testing.T) {
+		noCtx := []store.SearchResult{{
+			Collection: "notes", Path: "noctx.md", Title: "No Ctx",
+			Score: 0.85, Snippet: "text", Hash: "bbb222", DocID: 2,
+		}}
+		out := Results(noCtx, JSON, Opts{})
+		assert.NotContains(t, out, `"context"`)
+	})
+}
+
+func TestMultiGetResults_JSON(t *testing.T) {
+	results := []store.MultiGetResult{
+		{
+			Doc: &store.RetrievedDoc{
+				Filepath: "qmd://notes/found.md", DisplayPath: "notes/found.md",
+				Title: "Found", Hash: "aaa111bbb222", DocID: "aaa111",
+				CollectionName: "notes", Body: "found body",
+			},
+			Filepath: "qmd://notes/found.md",
+		},
+		{Filepath: "qmd://notes/big.md", Skipped: true, SkipReason: "too large"},
+	}
+
+	out := MultiGetResults(results, JSON)
+	assert.Contains(t, out, "Found")
+	assert.Contains(t, out, "too large")
+}
+
+func TestMultiGetResults_Default(t *testing.T) {
+	SetColor(false)
+	results := []store.MultiGetResult{
+		{
+			Doc: &store.RetrievedDoc{
+				Filepath: "qmd://notes/found.md", DisplayPath: "notes/found.md",
+				Title: "Found", Hash: "aaa111bbb222", DocID: "aaa111",
+				CollectionName: "notes", Body: "found body content",
+			},
+			Filepath: "qmd://notes/found.md",
+		},
+		{Filepath: "qmd://notes/big.md", Skipped: true, SkipReason: "File too large"},
+	}
+
+	out := MultiGetResults(results, Default)
+	assert.Contains(t, out, "found.md")
+	assert.Contains(t, out, "found body content")
+	assert.Contains(t, out, "skipped")
+}
+
+func TestLsResults_JSON(t *testing.T) {
+	entries := []store.LsEntry{
+		{Path: "qmd://notes/", FileCount: 5, IsCollection: true},
+		{Path: "qmd://notes/readme.md", Size: 1024, ModifiedAt: "2024-01-01"},
+	}
+	out := LsResults(entries, JSON)
+	assert.Contains(t, out, "qmd://notes/")
+	assert.Contains(t, out, "readme.md")
+}
+
+func TestLsResults_Default(t *testing.T) {
+	SetColor(false)
+	entries := []store.LsEntry{
+		{Path: "qmd://notes/", FileCount: 3, IsCollection: true},
+		{Path: "qmd://notes/readme.md", Size: 512, ModifiedAt: "2024-06-15"},
+	}
+	out := LsResults(entries, Default)
+	assert.Contains(t, out, "notes/")
+	assert.Contains(t, out, "readme.md")
+}
