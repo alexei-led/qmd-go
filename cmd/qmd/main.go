@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/urfave/cli/v2"
 
@@ -162,10 +163,60 @@ func updateCmd() *cli.Command {
 			&cli.IntFlag{Name: "max-docs-per-batch", Usage: "max docs per embedding batch", Value: defaultDocsPerBatch},
 			&cli.IntFlag{Name: "max-batch-mb", Usage: "max batch size in MB", Value: defaultBatchMB},
 		},
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action: updateAction,
 	}
+}
+
+func updateAction(c *cli.Context) error {
+	_, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	if c.Bool("pull") {
+		if err := runUpdateCommands(database); err != nil {
+			return err
+		}
+	}
+
+	progress := func(collection, status string, current, total int) {
+		switch status {
+		case "scanning":
+			fmt.Printf("Scanning %s...\n", collection)
+		case "done":
+			fmt.Printf("  %s: %d files indexed\n", collection, total)
+		}
+	}
+
+	return store.ReindexAll(database, progress)
+}
+
+func runUpdateCommands(d *sql.DB) error {
+	rows, err := d.Query(`SELECT name, update_command FROM store_collections WHERE update_command IS NOT NULL AND update_command != ''`)
+	if err != nil {
+		return fmt.Errorf("query update commands: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var name, cmd string
+		if err := rows.Scan(&name, &cmd); err != nil {
+			return fmt.Errorf("scan update command: %w", err)
+		}
+		fmt.Printf("Running update command for %s: %s\n", name, cmd)
+		if err := execShellCommand(cmd); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: update command for %s failed: %v\n", name, err)
+		}
+	}
+	return rows.Err()
+}
+
+func execShellCommand(cmd string) error {
+	c := exec.Command("sh", "-c", cmd)
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
 }
 
 func embedCmd() *cli.Command {

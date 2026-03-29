@@ -799,15 +799,15 @@ Port: `src/collections.ts` (500 lines), `src/store.ts:789-957`
 
 Port: `src/store.ts:1058-1180, 1577-1636, 1891-2024`
 
-- [ ] 3a: File scanning with doublestar glob + ignore patterns
-- [ ] 3b: Content hashing (crypto/sha256)
-- [ ] 3c: Title extraction (markdown headings, org-mode, fallback to filename)
-- [ ] 3d: Handelize function (triple underscore, emoji→hex, Unicode cleanup)
-- [ ] 3e: Document CRUD: insertContent, insertDocument, deactivate, getActiveDocumentPaths
-- [ ] 3f: Virtual path utilities: parse, build, resolve, isVirtualPath, toVirtualPath
-- [ ] 3g: Reindex orchestration with progress callback
-- [ ] 3h: CLI command: `qmd update [--pull]`
-- [ ] 3i: Tests: indexing, title extraction, handelize edge cases, virtual paths
+- [x] 3a: File scanning with doublestar glob + ignore patterns
+- [x] 3b: Content hashing (crypto/sha256)
+- [x] 3c: Title extraction (markdown headings, org-mode, fallback to filename)
+- [x] 3d: Handelize function (triple underscore, emoji→hex, Unicode cleanup)
+- [x] 3e: Document CRUD: insertContent, insertDocument, deactivate, getActiveDocumentPaths
+- [x] 3f: Virtual path utilities: parse, build, resolve, isVirtualPath, toVirtualPath
+- [x] 3g: Reindex orchestration with progress callback
+- [x] 3h: CLI command: `qmd update [--pull]`
+- [x] 3i: Tests: indexing, title extraction, handelize edge cases, virtual paths
 
 **Accept:** Go-indexed content searchable by TS `qmd search`.
 
