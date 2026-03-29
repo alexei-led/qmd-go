@@ -10,6 +10,7 @@ import (
 
 	"github.com/user/qmd-go/internal/config"
 	dbpkg "github.com/user/qmd-go/internal/db"
+	"github.com/user/qmd-go/internal/format"
 	"github.com/user/qmd-go/internal/store"
 )
 
@@ -72,9 +73,59 @@ func searchCmd() *cli.Command {
 		Usage:     "Full-text search",
 		ArgsUsage: "<query>",
 		Flags:     searchFlags(),
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action:    searchAction,
+	}
+}
+
+func searchAction(c *cli.Context) error {
+	if c.NArg() < 1 {
+		return fmt.Errorf("usage: qmd search <query>")
+	}
+	query := c.Args().First()
+
+	_, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	results, err := store.SearchFTS(database, query, store.SearchOpts{
+		Limit:        c.Int("n"),
+		MinScore:     c.Float64("min-score"),
+		Collection:   c.String("c"),
+		SearchAll:    c.Bool("all"),
+		ContextLines: c.Int("C"),
+		ShowFull:     c.Bool("full"),
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(results) == 0 {
+		fmt.Println("No results found.")
+		return nil
+	}
+
+	f := resolveFormat(c)
+	out := format.Results(results, f, format.Opts{LineNumbers: c.Bool("line-numbers")})
+	fmt.Print(out)
+	return nil
+}
+
+func resolveFormat(c *cli.Context) format.Format {
+	switch {
+	case c.Bool("json"):
+		return format.JSON
+	case c.Bool("csv"):
+		return format.CSV
+	case c.Bool("xml"):
+		return format.XML
+	case c.Bool("md"):
+		return format.Markdown
+	case c.Bool("files"):
+		return format.Files
+	default:
+		return format.Default
 	}
 }
 

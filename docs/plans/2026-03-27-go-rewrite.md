@@ -817,14 +817,14 @@ Port: `src/store.ts:1058-1180, 1577-1636, 1891-2024`
 
 Port: `src/store.ts:2653-2818, 3514-3630`, `src/cli/formatter.ts` (430 lines)
 
-- [ ] 4a: `buildFTS5Query()` — quoted phrases, negation, prefix matching, Unicode sanitization
-- [ ] 4b: `searchFTS()` with BM25 score normalization (`|x| / (1 + |x|)`)
-- [ ] 4c: Snippet extraction with intent weighting and diff-style headers
-- [ ] 4d: Context resolution (hierarchical inheritance from store_collections)
-- [ ] 4e: Output formatters: JSON, CSV, XML, Markdown, files list
-- [ ] 4f: ANSI color output with NO_COLOR/QMD_NO_COLOR support
-- [ ] 4g: CLI command: `qmd search <text>` with all flags
-- [ ] 4h: Tests: FTS query building, score normalization, all formatters, snippets
+- [x] 4a: `buildFTS5Query()` — quoted phrases, negation, prefix matching, Unicode sanitization
+- [x] 4b: `searchFTS()` with BM25 score normalization (`|x| / (1 + |x|)`)
+- [x] 4c: Snippet extraction with intent weighting and diff-style headers
+- [x] 4d: Context resolution (hierarchical inheritance from store_collections)
+- [x] 4e: Output formatters: JSON, CSV, XML, Markdown, files list
+- [x] 4f: ANSI color output with NO_COLOR/QMD_NO_COLOR support
+- [x] 4g: CLI command: `qmd search <text>` with all flags
+- [x] 4h: Tests: FTS query building, score normalization, all formatters, snippets
 
 **Accept:** Same query returns same results in Go and TS.
 
