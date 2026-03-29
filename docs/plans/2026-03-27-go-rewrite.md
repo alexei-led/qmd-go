@@ -888,16 +888,16 @@ Port: `src/store.ts:72-226, 1196-1452, 2820-2968`
 
 Port: `src/store.ts:2970-4389`
 
-- [ ] 8a: Query expansion with LLM cache (SHA-256 key → llm_cache table)
-- [ ] 8b: RRF implementation (k=60, 2x weight for first 2 lists, top-rank bonus)
-- [ ] 8c: Best-chunk selection (keyword overlap + intent weighting)
-- [ ] 8d: Reranking with per-chunk cache (key: query + model + chunk text)
-- [ ] 8e: Position-aware score blending (0.75/0.60/0.40 by rank)
-- [ ] 8f: hybridQuery orchestration (all 8 steps from algorithm section)
-- [ ] 8g: structuredSearch (pre-expanded queries, collection filtering)
-- [ ] 8h: Explain mode (RRF trace output)
-- [ ] 8i: CLI command: `qmd query <text>` with --no-rerank, --explain, --intent
-- [ ] 8j: Tests: RRF fusion, score blending, explain format, cache keys
+- [x] 8a: Query expansion with LLM cache (SHA-256 key → llm_cache table)
+- [x] 8b: RRF implementation (k=60, 2x weight for first 2 lists, top-rank bonus)
+- [x] 8c: Best-chunk selection (keyword overlap + intent weighting)
+- [x] 8d: Reranking with per-chunk cache (key: query + model + chunk text)
+- [x] 8e: Position-aware score blending (0.75/0.60/0.40 by rank)
+- [x] 8f: hybridQuery orchestration (all 8 steps from algorithm section)
+- [x] 8g: structuredSearch (pre-expanded queries, collection filtering)
+- [x] 8h: Explain mode (RRF trace output)
+- [x] 8i: CLI command: `qmd query <text>` with --no-rerank, --explain, --intent
+- [x] 8j: Tests: RRF fusion, score blending, explain format, cache keys
 
 **Accept:** Same query returns same top-5 in Go and TS.
 

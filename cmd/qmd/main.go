@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 
@@ -198,10 +200,120 @@ func queryCmd() *cli.Command {
 			&cli.StringFlag{Name: "intent", Usage: "intent context for search"},
 			&cli.IntFlag{Name: "candidate-limit", Usage: "candidate pool size", Value: defaultCandidateLimit},
 		),
-		Action: func(c *cli.Context) error {
-			return fmt.Errorf("not yet implemented")
-		},
+		Action: queryAction,
 	}
+}
+
+func queryAction(c *cli.Context) error {
+	if c.NArg() < 1 {
+		return fmt.Errorf("usage: qmd query <query>")
+	}
+	query := c.Args().First()
+
+	cfg, _, database, err := openIndex(c)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = database.Close() }()
+
+	embedder, reranker, generator := initQueryProviders(c, cfg)
+	if embedder != nil {
+		defer func() { _ = embedder.Close() }()
+	}
+	if reranker != nil {
+		defer func() { _ = reranker.Close() }()
+	}
+	if generator != nil {
+		defer func() { _ = generator.Close() }()
+	}
+
+	results, err := store.HybridQuery(c.Context, database, query, embedder, reranker, generator, store.HybridOpts{
+		Limit:          c.Int("n"),
+		MinScore:       c.Float64("min-score"),
+		CandidateLimit: c.Int("candidate-limit"),
+		Collection:     c.String("c"),
+		SearchAll:      c.Bool("all"),
+		Intent:         c.String("intent"),
+		NoRerank:       c.Bool("no-rerank"),
+		Explain:        c.Bool("explain"),
+		ContextLines:   c.Int("C"),
+		ShowFull:       c.Bool("full"),
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(results) == 0 {
+		fmt.Println("No results found.")
+		return nil
+	}
+
+	return outputQueryResults(c, results)
+}
+
+func initQueryProviders(c *cli.Context, cfg *config.Config) (provider.Embedder, provider.Reranker, provider.Generator) {
+	embedder, err := provider.NewEmbedder(cfg.Providers.Embed)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: embedder unavailable: %v\n", err)
+	}
+
+	var reranker provider.Reranker
+	if !c.Bool("no-rerank") {
+		reranker, err = provider.NewReranker(cfg.Providers.Rerank)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: reranker unavailable: %v\n", err)
+		}
+	}
+
+	var generator provider.Generator
+	generator, err = provider.NewGenerator(cfg.Providers.Generate)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: generator unavailable: %v\n", err)
+	}
+
+	return embedder, reranker, generator
+}
+
+func outputQueryResults(c *cli.Context, results []store.HybridResult) error {
+	if c.Bool("explain") {
+		return printExplainResults(results, resolveFormat(c))
+	}
+
+	searchResults := make([]store.SearchResult, len(results))
+	for i, r := range results {
+		searchResults[i] = r.SearchResult
+	}
+	f := resolveFormat(c)
+	out := format.Results(searchResults, f, format.Opts{LineNumbers: c.Bool("line-numbers")})
+	fmt.Print(out)
+	return nil
+}
+
+func printExplainResults(results []store.HybridResult, f format.Format) error {
+	if f == format.JSON {
+		out, err := json.MarshalIndent(results, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(out))
+		return nil
+	}
+
+	for i, r := range results {
+		fmt.Printf("#%d %s (score: %.4f)\n", i+1, r.Path, r.Score)
+		if r.Explain != nil {
+			fmt.Printf("    RRF: %.4f (rank %d)  Rerank: %.4f  Blend: %.2f  Final: %.4f\n",
+				r.Explain.RRFScore, r.Explain.RRFRank, r.Explain.RerankScore,
+				r.Explain.BlendWeight, r.Explain.FinalScore)
+			if len(r.Explain.Sources) > 0 {
+				fmt.Printf("    Sources: %s\n", strings.Join(r.Explain.Sources, ", "))
+			}
+		}
+		if r.Snippet != "" {
+			fmt.Printf("    %s\n", r.Snippet)
+		}
+	}
+	return nil
 }
 
 func getCmd() *cli.Command {
