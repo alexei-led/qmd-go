@@ -60,11 +60,11 @@ func (e *LocalEmbedder) Embed(ctx context.Context, texts []string, _ EmbedOpts) 
 		embeddings[i] = vec
 	}
 
+	e.mu.Lock()
 	if e.dims == 0 && len(embeddings) > 0 && len(embeddings[0]) > 0 {
-		e.mu.Lock()
 		e.dims = len(embeddings[0])
-		e.mu.Unlock()
 	}
+	e.mu.Unlock()
 
 	return embeddings, nil
 }

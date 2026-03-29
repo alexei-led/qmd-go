@@ -139,7 +139,7 @@ func searchCollections(d *sql.DB, query string, limit int, collections []string)
 // vecSearchCollections runs vector search across multiple collections.
 func vecSearchCollections(d *sql.DB, embedding []float32, limit int, collections []string) []SearchResult {
 	if len(collections) == 0 {
-		results, err := VectorSearch(d, embedding, VectorSearchOpts{Limit: limit, SearchAll: true})
+		results, err := VectorSearch(d, embedding, VectorSearchOpts{Limit: limit})
 		if err != nil {
 			slog.Warn("structured vec failed", "error", err)
 			return nil

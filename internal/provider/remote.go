@@ -67,13 +67,12 @@ func (e *RemoteEmbedder) Embed(ctx context.Context, texts []string, opts EmbedOp
 	if len(embeddings) > 0 {
 		dim := len(embeddings[0])
 		e.dimsMu.Lock()
+		defer e.dimsMu.Unlock()
 		if e.dims == 0 {
 			e.dims = dim
 		} else if e.dims != dim {
-			e.dimsMu.Unlock()
 			return nil, fmt.Errorf("dimension mismatch: expected %d, got %d", e.dims, dim)
 		}
-		e.dimsMu.Unlock()
 	}
 
 	return embeddings, nil
@@ -119,6 +118,11 @@ func (e *RemoteEmbedder) embedOpenAI(ctx context.Context, texts []string, model 
 	for _, d := range result.Data {
 		if d.Index >= 0 && d.Index < len(embeddings) {
 			embeddings[d.Index] = d.Embedding
+		}
+	}
+	for i, emb := range embeddings {
+		if emb == nil {
+			return nil, fmt.Errorf("openai embed: missing embedding for input %d", i)
 		}
 	}
 	return embeddings, nil
@@ -212,9 +216,6 @@ func (e *RemoteEmbedder) embedGemini(ctx context.Context, texts []string, model 
 	}
 
 	url := e.baseURL + "/v1beta/models/" + model + ":batchEmbedContents"
-	if e.apiKey != "" {
-		url += "?key=" + e.apiKey
-	}
 
 	respBody, err := e.client.Do(ctx, func() (*http.Request, error) {
 		req, reqErr := http.NewRequest(http.MethodPost, url, bytes.NewReader(reqBody))
@@ -222,6 +223,9 @@ func (e *RemoteEmbedder) embedGemini(ctx context.Context, texts []string, model 
 			return nil, reqErr
 		}
 		req.Header.Set("Content-Type", "application/json")
+		if e.apiKey != "" {
+			req.Header.Set("X-Goog-Api-Key", e.apiKey)
+		}
 		return req, nil
 	})
 	if err != nil {

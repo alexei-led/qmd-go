@@ -95,7 +95,7 @@ func TestCohereEmbedder(t *testing.T) {
 func TestGeminiEmbedder(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Contains(t, r.URL.Path, "/v1beta/models/gemini-embed")
-		assert.Equal(t, "test-key", r.URL.Query().Get("key"))
+		assert.Equal(t, "test-key", r.Header.Get("X-Goog-Api-Key"))
 
 		var req geminiBatchReq
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))

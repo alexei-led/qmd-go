@@ -28,7 +28,6 @@ const (
 	defaultMaxLines       = 100
 	defaultMaxBytes       = 10240
 	defaultDocsPerBatch   = 64
-	defaultBatchMB        = 64
 	defaultMCPPort        = 18790
 )
 
@@ -507,8 +506,6 @@ func updateCmd() *cli.Command {
 		Usage: "Scan and index documents",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{Name: "pull", Usage: "run collection update commands first"},
-			&cli.IntFlag{Name: "max-docs-per-batch", Usage: "max docs per embedding batch", Value: defaultDocsPerBatch},
-			&cli.IntFlag{Name: "max-batch-mb", Usage: "max batch size in MB", Value: defaultBatchMB},
 		},
 		Action: updateAction,
 	}
@@ -618,10 +615,11 @@ func pullCmd() *cli.Command {
 }
 
 func pullAction(c *cli.Context) error {
-	cfg, _, _, err := openIndex(c)
+	cfg, _, database, err := openIndex(c)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = database.Close() }()
 
 	var configModel, providerType string
 	if cfg.Providers != nil && cfg.Providers.Embed != nil {
