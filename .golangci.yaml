@@ -1,0 +1,22 @@
+version: "2"
+linters:
+  enable:
+    - gocyclo
+    - funlen
+    - mnd
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  funlen:
+    lines: 105
+    statements: 60
+  mnd:
+    ignored-functions:
+      - math.*
+      - strconv.*
+formatters:
+  enable:
+    - gofmt
+issues:
+  exclude-dirs:
+    - vendor

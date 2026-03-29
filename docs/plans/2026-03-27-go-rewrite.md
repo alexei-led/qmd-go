@@ -753,11 +753,11 @@ Per-endpoint circuit breakers. States: closed → open (2 failures) → half-ope
 
 **Files:** `go.mod`, `cmd/qmd/main.go`, `Makefile`, `.golangci.yaml`, `CLAUDE.md`
 
-- [ ] 0a: `go mod init github.com/user/qmd-go` with all dependencies
-- [ ] 0b: Makefile with build, test, lint, fmt, release targets + LDFLAGS version embedding
-- [ ] 0c: `.golangci.yaml` (gofmt, gocyclo limit 15, funlen limit 105, mnd)
-- [ ] 0d: `cmd/qmd/main.go` — urfave/cli v2 app skeleton with `--index` global flag, version
-- [ ] 0e: CLAUDE.md with build commands, architecture overview, conventions
+- [x] 0a: `go mod init github.com/user/qmd-go` with all dependencies
+- [x] 0b: Makefile with build, test, lint, fmt, release targets + LDFLAGS version embedding
+- [x] 0c: `.golangci.yaml` (gofmt, gocyclo limit 15, funlen limit 105, mnd)
+- [x] 0d: `cmd/qmd/main.go` — urfave/cli v2 app skeleton with `--index` global flag, version
+- [x] 0e: CLAUDE.md with build commands, architecture overview, conventions
 
 **Accept:** `make build` produces binary, `qmd --version` works, `make lint` passes.
 
