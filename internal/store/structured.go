@@ -116,7 +116,7 @@ func buildStructuredLists(
 // searchCollections runs FTS across multiple collections, merging results.
 func searchCollections(d *sql.DB, query string, limit int, collections []string) []SearchResult {
 	if len(collections) == 0 {
-		results, err := SearchFTS(d, query, SearchOpts{Limit: limit, SearchAll: true})
+		results, err := SearchFTS(d, query, SearchOpts{Limit: limit})
 		if err != nil {
 			slog.Warn("structured fts failed", "error", err)
 			return nil

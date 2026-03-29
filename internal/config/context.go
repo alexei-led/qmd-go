@@ -32,7 +32,7 @@ func AddContext(d *sql.DB, cfg *Config, cfgPath, path, context string, global bo
 // RemoveContext removes a context annotation for a path.
 func RemoveContext(d *sql.DB, cfg *Config, cfgPath, path string) error {
 	found := false
-	filtered := cfg.Contexts[:0]
+	filtered := make([]ContextEntry, 0, len(cfg.Contexts))
 	for _, e := range cfg.Contexts {
 		if e.Path == path {
 			found = true

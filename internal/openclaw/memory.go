@@ -315,12 +315,6 @@ func pathSimilarity(a, b string) float64 {
 
 func splitPath(p string) []string {
 	var parts []string
-	for _, s := range []byte(p) {
-		if s == '/' {
-			parts = append(parts, "")
-		}
-	}
-	// Use simple split
 	start := 0
 	for i := 0; i <= len(p); i++ {
 		if i == len(p) || p[i] == '/' {

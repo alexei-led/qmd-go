@@ -96,9 +96,13 @@ func lookupDocByHash(d *sql.DB, hash, collection string, searchAll bool) (Search
 		FROM documents d WHERE d.hash = ? AND d.active = 1`
 	args := []any{hash}
 
-	if collection != "" && !searchAll {
-		q += ` AND d.collection = ?`
-		args = append(args, collection)
+	if !searchAll {
+		if collection != "" {
+			q += ` AND d.collection = ?`
+			args = append(args, collection)
+		} else {
+			q += ` AND d.collection IN (SELECT name FROM store_collections WHERE include_by_default = 1)`
+		}
 	}
 
 	var r SearchResult
