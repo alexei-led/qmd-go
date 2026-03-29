@@ -924,16 +924,16 @@ Port: `src/store.ts:3173-3461, 2143-2258`
 
 Port: `src/mcp/server.ts` (807 lines)
 
-- [ ] 10a: MCP server core with mark3labs/mcp-go (server.NewMCPServer, s.AddTool)
-- [ ] 10b: Tools: query, get, multi_get, status (exact JSON schemas from MCP section)
-- [ ] 10c: Resource template: `qmd://{+path}`
-- [ ] 10d: Dynamic instructions builder
-- [ ] 10e: Stdio transport: `qmd mcp [--stdio]`
-- [ ] 10f: HTTP transport: `qmd mcp --http [--port N]`
-- [ ] 10g: REST endpoints: POST /search, POST /query, GET /health
-- [ ] 10h: Multi-agent sessions: per-session McpServer+Transport, shared Store
-- [ ] 10i: Daemon mode: `qmd mcp --daemon`, `qmd mcp stop`
-- [ ] 10j: Tests: tool handlers, concurrent sessions, REST endpoints
+- [x] 10a: MCP server core with mark3labs/mcp-go (server.NewMCPServer, s.AddTool)
+- [x] 10b: Tools: query, get, multi_get, status (exact JSON schemas from MCP section)
+- [x] 10c: Resource template: `qmd://{+path}`
+- [x] 10d: Dynamic instructions builder
+- [x] 10e: Stdio transport: `qmd mcp [--stdio]`
+- [x] 10f: HTTP transport: `qmd mcp --http [--port N]`
+- [x] 10g: REST endpoints: POST /search, POST /query, GET /health
+- [x] 10h: Multi-agent sessions: per-session McpServer+Transport, shared Store
+- [x] 10i: Daemon mode: `qmd mcp --daemon`, `qmd mcp stop`
+- [x] 10j: Tests: tool handlers, concurrent sessions, REST endpoints
 
 **Accept:** MCP works with Claude Desktop and Claude Code. REST endpoints return correct JSON.
 
