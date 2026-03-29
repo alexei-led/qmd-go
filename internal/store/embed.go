@@ -201,6 +201,10 @@ func claimBatch(d *sql.DB, limit int, reembed bool) ([]embedItem, error) {
 		}
 		hashes = append(hashes, h)
 	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, fmt.Errorf("iterate claimed rows: %w", err)
+	}
 	if err := rows.Close(); err != nil {
 		return nil, fmt.Errorf("close claimed rows: %w", err)
 	}
