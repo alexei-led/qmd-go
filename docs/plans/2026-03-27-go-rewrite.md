@@ -767,12 +767,12 @@ Per-endpoint circuit breakers. States: closed → open (2 failures) → half-ope
 
 Port: `src/db.ts` (96 lines), `src/store.ts:612-783`
 
-- [ ] 1a: `internal/db/db.go` — `sql.Open` with ncruces driver, PRAGMA setup via DSN params, ping check
-- [ ] 1b: `internal/store/schema.go` — `initializeDatabase()` executing ALL SQL from schema section above (tables, indexes, FTS5, triggers, legacy drops)
-- [ ] 1c: sqlite-vec loading via blank import, `vectors_vec` virtual table with graceful degradation
-- [ ] 1d: `internal/store/types.go` — all shared types (SearchResult, DocumentResult, etc.)
-- [ ] 1e: Schema migration — check for `seq` column in `content_vectors`, drop/recreate if missing
-- [ ] 1f: Tests: create new DB, open existing TS DB, vec_version() check, concurrent reads
+- [x] 1a: `internal/db/db.go` — `sql.Open` with ncruces driver, PRAGMA setup via DSN params, ping check
+- [x] 1b: `internal/store/schema.go` — `initializeDatabase()` executing ALL SQL from schema section above (tables, indexes, FTS5, triggers, legacy drops)
+- [x] 1c: sqlite-vec loading via blank import, `vectors_vec` virtual table with graceful degradation
+- [x] 1d: `internal/store/types.go` — all shared types (SearchResult, DocumentResult, etc.)
+- [x] 1e: Schema migration — check for `seq` column in `content_vectors`, drop/recreate if missing
+- [x] 1f: Tests: create new DB, open existing TS DB, vec_version() check, concurrent reads
 
 **Accept:** Go-created DB opens without error in TS qmd. `make test` passes.
 
