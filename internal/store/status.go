@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"github.com/user/qmd-go/internal/db"
 )
@@ -112,6 +113,11 @@ func Cleanup(d *sql.DB, opts CleanupOpts) (CleanupResult, error) {
 		}
 		n, _ := res.RowsAffected()
 		result.VectorsRemoved = int(n)
+
+		// Also clean up the virtual table to keep it in sync.
+		if _, err := d.Exec(`DELETE FROM vectors_vec WHERE hash NOT IN (SELECT DISTINCT hash FROM documents WHERE active = 1)`); err != nil {
+			slog.Debug("cleanup vectors_vec (may not exist)", "error", err)
+		}
 	}
 
 	if !opts.SkipLLMCache {

@@ -93,7 +93,8 @@ func (rc *ResilientClient) Do(ctx context.Context, build func() (*http.Request, 
 			}
 			defer func() { _ = resp.Body.Close() }()
 
-			body, err := io.ReadAll(resp.Body)
+			const maxResponseBytes = 50 << 20 // 50 MB
+			body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 			if err != nil {
 				return nil, fmt.Errorf("read response: %w", err)
 			}

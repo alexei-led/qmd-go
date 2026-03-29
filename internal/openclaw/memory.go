@@ -120,8 +120,8 @@ func memorySearchHandler(
 		out := make([]MemorySearchResult, 0, len(selected))
 		for _, s := range selected {
 			snippet := s.Snippet
-			if len(snippet) > MaxSnippetChars {
-				snippet = snippet[:MaxSnippetChars]
+			if len([]rune(snippet)) > MaxSnippetChars {
+				snippet = string([]rune(snippet)[:MaxSnippetChars])
 			}
 			out = append(out, MemorySearchResult{
 				Path:      s.Path,
