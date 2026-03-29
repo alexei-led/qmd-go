@@ -782,14 +782,14 @@ Port: `src/db.ts` (96 lines), `src/store.ts:612-783`
 
 Port: `src/collections.ts` (500 lines), `src/store.ts:789-957`
 
-- [ ] 2a: Config types matching TS YAML schema + `providers` section
-- [ ] 2b: Config paths: `~/.config/qmd/{index}.yml`, XDG_CONFIG_HOME, QMD_CONFIG_DIR
-- [ ] 2c: loadConfig/saveConfig with exact YAML formatting
-- [ ] 2d: Config-to-DB sync (SHA-256 hash check, upsert store_collections)
-- [ ] 2e: Collection CRUD: add, remove, rename, show, set-update, include, exclude
-- [ ] 2f: Context management: add, remove, list, check, findContextForPath (hierarchical)
-- [ ] 2g: CLI commands: `qmd collection *`, `qmd context *`
-- [ ] 2h: Tests: YAML round-trip, config sync, collection CRUD
+- [x] 2a: Config types matching TS YAML schema + `providers` section
+- [x] 2b: Config paths: `~/.config/qmd/{index}.yml`, XDG_CONFIG_HOME, QMD_CONFIG_DIR
+- [x] 2c: loadConfig/saveConfig with exact YAML formatting
+- [x] 2d: Config-to-DB sync (SHA-256 hash check, upsert store_collections)
+- [x] 2e: Collection CRUD: add, remove, rename, show, set-update, include, exclude
+- [x] 2f: Context management: add, remove, list, check, findContextForPath (hierarchical)
+- [x] 2g: CLI commands: `qmd collection *`, `qmd context *`
+- [x] 2h: Tests: YAML round-trip, config sync, collection CRUD
 
 **Accept:** Add collection in Go, TS sees it. YAML files identical format.
 
