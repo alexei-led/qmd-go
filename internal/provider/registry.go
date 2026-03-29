@@ -32,7 +32,7 @@ func NewEmbedder(cfg *config.ProviderConfig) (Embedder, error) {
 
 	switch cfg.Type {
 	case "local":
-		return nil, fmt.Errorf("local embedder requires Task 6 (kelindar/search)")
+		return NewLocalEmbedder(ResolveModelPath(cfg.Model)), nil
 	case "openai", "cohere", "gemini":
 		return NewRemoteEmbedder(cfg.Type, url, apiKey, cfg.Model, nil), nil
 	default:

@@ -854,12 +854,12 @@ Port: `src/remote-llm.ts` (580 lines)
 
 New — replaces hugot/GoMLX from original plan
 
-- [ ] 6a: `LocalEmbedder` wrapping `search.NewVectorizer`
-- [ ] 6b: GGUF model path resolution: `~/.cache/qmd/models/` or config override
-- [ ] 6c: Lazy initialization (first Embed call loads model)
-- [ ] 6d: Batch embedding: loop `EmbedText()` per text, collect `[][]float32`
-- [ ] 6e: `QMD_EMBED_PROVIDER=local` env var or `providers.embed.type: local` config
-- [ ] 6f: Tests: embed with real model (integration, skipped without model), concurrent calls
+- [x] 6a: `LocalEmbedder` wrapping `search.NewVectorizer`
+- [x] 6b: GGUF model path resolution: `~/.cache/qmd/models/` or config override
+- [x] 6c: Lazy initialization (first Embed call loads model)
+- [x] 6d: Batch embedding: loop `EmbedText()` per text, collect `[][]float32`
+- [x] 6e: `QMD_EMBED_PROVIDER=local` env var or `providers.embed.type: local` config
+- [x] 6f: Tests: embed with real model (integration, skipped without model), concurrent calls
 
 **Accept:** `qmd embed --provider local` produces 384d vectors matching TS index format.
 

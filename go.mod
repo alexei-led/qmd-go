@@ -15,6 +15,10 @@ require (
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/ebitengine/purego v0.8.1 // indirect
+	github.com/kelindar/iostream v1.4.0 // indirect
+	github.com/kelindar/search v0.4.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/ncruces/go-sqlite3-wasm v1.0.3-0.20260328094950-9a3c1e23fa90 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect

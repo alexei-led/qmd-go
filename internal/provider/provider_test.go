@@ -408,11 +408,13 @@ func TestNewEmbedder_EnvFallback(t *testing.T) {
 	assert.Equal(t, "env-key", re.apiKey)
 }
 
-func TestNewEmbedder_LocalNotYet(t *testing.T) {
+func TestNewEmbedder_LocalViaEnv(t *testing.T) {
 	t.Setenv("QMD_EMBED_PROVIDER", "local")
-	_, err := NewEmbedder(nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Task 6")
+	e, err := NewEmbedder(nil)
+	require.NoError(t, err)
+	require.NotNil(t, e)
+	_, ok := e.(*LocalEmbedder)
+	require.True(t, ok)
 }
 
 func TestNewEmbedder_NilReturnsNil(t *testing.T) {
