@@ -834,17 +834,17 @@ Port: `src/store.ts:2653-2818, 3514-3630`, `src/cli/formatter.ts` (430 lines)
 
 Port: `src/remote-llm.ts` (580 lines)
 
-- [ ] 5a: Embedder, Reranker, Generator interfaces in `provider.go`
-- [ ] 5b: Remote embedder — OpenAI-compatible `/v1/embeddings` client with provider nuances
-- [ ] 5c: Remote embedder — Cohere adapter (`/v2/embed`, `texts` field, `input_type`)
-- [ ] 5d: Remote embedder — Gemini adapter (`/v1beta/.../embedContent`)
-- [ ] 5e: Remote generator — OpenAI-compatible `/v1/chat/completions`
-- [ ] 5f: Remote rerankers — Cohere (`/v2/rerank`), Jina (`/v1/rerank`), Voyage (`/v1/rerank` with `top_k`), TEI (`/rerank`)
-- [ ] 5g: failsafe-go circuit breaker + retry wrapper
-- [ ] 5h: Provider registry — factory from config/env vars
-- [ ] 5i: Embedding dimension auto-detection and lock
-- [ ] 5j: Embedding input normalization (Qwen3 prefix handling)
-- [ ] 5k: Tests: each adapter with httptest.Server, circuit breaker state transitions
+- [x] 5a: Embedder, Reranker, Generator interfaces in `provider.go`
+- [x] 5b: Remote embedder — OpenAI-compatible `/v1/embeddings` client with provider nuances
+- [x] 5c: Remote embedder — Cohere adapter (`/v2/embed`, `texts` field, `input_type`)
+- [x] 5d: Remote embedder — Gemini adapter (`/v1beta/.../embedContent`)
+- [x] 5e: Remote generator — OpenAI-compatible `/v1/chat/completions`
+- [x] 5f: Remote rerankers — Cohere (`/v2/rerank`), Jina (`/v1/rerank`), Voyage (`/v1/rerank` with `top_k`), TEI (`/rerank`)
+- [x] 5g: failsafe-go circuit breaker + retry wrapper
+- [x] 5h: Provider registry — factory from config/env vars
+- [x] 5i: Embedding dimension auto-detection and lock
+- [x] 5j: Embedding input normalization (Qwen3 prefix handling)
+- [x] 5k: Tests: each adapter with httptest.Server, circuit breaker state transitions
 
 **Accept:** Mock HTTP tests pass for all provider formats.
 
