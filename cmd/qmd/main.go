@@ -592,7 +592,7 @@ func embedAction(c *cli.Context) error {
 	}
 	defer func() { _ = embedder.Close() }()
 
-	return store.EmbedDocuments(c.Context, database, embedder, store.EmbedOpts{
+	err = store.EmbedDocuments(c.Context, database, embedder, store.EmbedOpts{
 		Clear:         c.Bool("clear"),
 		NoIncremental: c.Bool("no-incremental"),
 		MaxDocs:       defaultDocsPerBatch,
@@ -601,6 +601,8 @@ func embedAction(c *cli.Context) error {
 			fmt.Fprintf(os.Stderr, "\rEmbedding: %d/%d", p.Current, p.Total)
 		}
 	})
+	fmt.Fprintln(os.Stderr)
+	return err
 }
 
 func pullCmd() *cli.Command {

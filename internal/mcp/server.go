@@ -112,7 +112,7 @@ func ServeHTTP(opts ServerOpts, port int) error {
 
 	registerRESTRoutes(mux, d)
 
-	addr := ":" + strconv.Itoa(port)
+	addr := "127.0.0.1:" + strconv.Itoa(port)
 	slog.Info("starting MCP server", "transport", "http", "addr", addr, "index", opts.IndexName)
 
 	srv := &http.Server{

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"runtime"
+	"strings"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 )
@@ -38,7 +39,8 @@ func buildDSN(dbPath string) string {
 	params.Add("_pragma", "busy_timeout(5000)")
 	params.Add("_pragma", "wal_autocheckpoint(1000)")
 	params.Add("_txlock", "immediate")
-	return fmt.Sprintf("file:%s?%s", dbPath, params.Encode())
+	escaped := strings.NewReplacer("?", "%3F", "#", "%23").Replace(dbPath)
+	return fmt.Sprintf("file:%s?%s", escaped, params.Encode())
 }
 
 // VecAvailable reports whether the sqlite-vec extension is loaded.
