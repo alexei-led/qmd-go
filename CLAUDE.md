@@ -50,3 +50,26 @@ internal/
 ## Global CLI Flag
 
 `--index <name>` (env: QMD_INDEX, default: "default") selects the config + database pair.
+
+## Tooling Notes
+
+### golangci-lint v2 Config Format
+
+This project uses golangci-lint v2 (`.golangci.yaml` with `version: "2"`). Key differences from v1:
+
+- Linter settings go under `linters.settings`, not top-level `linters-settings`
+- Formatters (`goimports`, `gofmt`) go under `formatters.enable`, not `linters.enable`
+- `typecheck`, `gosimple`, `stylecheck` are removed — subsumed by `staticcheck`
+- `perfsprint` was removed from linters in v2
+
+### CI: golangci-lint v2 Requires Manual Install
+
+`golangci/golangci-lint-action@v6` installs v1.x which cannot parse Go 1.26+ code. The CI workflow uses `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest` instead.
+
+### Release: Matrix Cross-Compilation
+
+The release workflow uses GitHub Actions matrix strategy for parallel cross-compilation (4 jobs: darwin-arm64/amd64, linux-amd64/arm64). Each job uploads its binary via `actions/upload-artifact@v4`. The release job downloads all with `actions/download-artifact@v4` and `merge-multiple: true`.
+
+### Mock Generation
+
+Uses mockery v2.53.6+ with `--with-expecter` for type-safe testify-compatible mocks. Generated mocks in `internal/provider/mocks/`. Regenerate with `make mock`.

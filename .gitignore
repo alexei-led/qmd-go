@@ -1,4 +1,7 @@
 
+# claude local settings
+.claude/settings.local.json
+
 # ralphex progress logs
 .ralphex/progress/
 
